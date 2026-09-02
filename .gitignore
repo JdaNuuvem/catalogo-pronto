@@ -1,0 +1,6 @@
+node_modules/
+dados/
+.env
+*.log
+.perfil-navegador/
+.envios/

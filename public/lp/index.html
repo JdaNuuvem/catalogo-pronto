@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Você manda as fotos. A gente monta sua loja.</title>
+<meta name="description" content="Montamos sua loja online em até 48 horas e cadastramos seus produtos um a um. R$ 400 para até 50 produtos e R$ 180 por mês com manutenção e suporte.">
+<meta name="theme-color" content="#2b0a0d">
+<meta property="og:title" content="Você manda as fotos. A gente monta sua loja.">
+<meta property="og:description" content="Loja pronta em até 48 horas. R$ 400 para até 50 produtos e R$ 180 por mês com manutenção, produtos novos e suporte.">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    /* Vinho profundo: a cor da goiabada cascão, que é produto deles. */
+    --brasa:      #2b0a0d;
+    --brasa-alta: #3d1114;
+    --brasa-funda:#1c0507;
+    --carmim:     #c2182b;
+    --carmim-alto:#e03a3e;
+    --creme:      #f7ede1;
+    --areia:      #c2a094;
+    --ouro:       #e0ac52;
+
+    --display: "Bricolage Grotesque", "Segoe UI", sans-serif;
+    --corpo:   "Public Sans", system-ui, sans-serif;
+    --margem:  clamp(20px, 5vw, 76px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--brasa);
+    color: var(--creme);
+    font-family: var(--corpo);
+    font-size: clamp(16px, 1.05vw, 18px);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Grão de filme sobre tudo. Tira o aspecto de cor chapada e dá matéria
+     à superfície — é o que separa "fundo colorido" de "papel impresso". */
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 100; pointer-events: none;
+    opacity: .045; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23r)'/%3E%3C/svg%3E");
+  }
+
+  h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+  h1, h2 { font-weight: 800; line-height: .96; letter-spacing: -.03em; }
+  a { color: inherit; }
+  ::selection { background: var(--carmim-alto); color: #fff; }
+
+  :focus-visible { outline: 3px solid var(--ouro); outline-offset: 3px; border-radius: 3px; }
+
+  .envelope { max-width: 1240px; margin: 0 auto; padding-inline: var(--margem); }
+
+  /* ============================================================== herói */
+
+  .heroi {
+    position: relative; min-height: 100svh;
+    display: grid; align-items: center; overflow: hidden;
+    /* Brasa: a luz vem de baixo à direita, como um forno aceso. */
+    background:
+      radial-gradient(120% 90% at 76% 78%, rgba(194,24,43,.42) 0%, rgba(194,24,43,0) 58%),
+      radial-gradient(90% 70% at 20% 8%, rgba(224,172,82,.10) 0%, rgba(224,172,82,0) 60%),
+      linear-gradient(175deg, var(--brasa-funda) 0%, var(--brasa) 48%, var(--brasa-alta) 100%);
+  }
+
+  #cena { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  /* Protege a coluna do texto e funde o pé da cena na página. */
+  .heroi::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+      linear-gradient(93deg, var(--brasa) 30%, rgba(43,10,13,.97) 45%,
+                             rgba(43,10,13,.55) 60%, rgba(43,10,13,0) 78%),
+      linear-gradient(180deg, rgba(28,5,7,.55) 0%, rgba(28,5,7,0) 22%,
+                              rgba(28,5,7,0) 72%, var(--brasa) 99%);
+  }
+  @media (max-width: 900px) {
+    .heroi::after {
+      background: linear-gradient(180deg, rgba(28,5,7,.62) 0%, rgba(28,5,7,.84) 46%, var(--brasa) 99%);
+    }
+  }
+
+  .heroi > .envelope { position: relative; z-index: 2; width: 100%; padding-block: 132px 8vh; }
+
+  .marca {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+    padding: 28px var(--margem);
+    display: flex; align-items: center; gap: 11px;
+    font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: -.02em;
+  }
+  .marca .selo {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: linear-gradient(150deg, var(--carmim-alto), var(--carmim));
+    box-shadow: 0 3px 12px rgba(224,58,62,.5);
+  }
+
+  /* A segunda linha é mais longa que a primeira, então a escala é calibrada
+     para as duas caberem em uma linha cada em tela larga. */
+  h1 { font-size: clamp(2.4rem, 5.3vw, 4.7rem); max-width: 23ch; }
+  h1 span { display: block; }
+  h1 .consequencia {
+    color: transparent;
+    background: linear-gradient(96deg, var(--ouro) 8%, #f6c97a 52%, var(--ouro) 96%);
+    -webkit-background-clip: text; background-clip: text;
+    padding-left: clamp(0px, 3vw, 58px);
+  }
+
+  .promessa {
+    margin: clamp(24px, 3vw, 36px) 0 0; max-width: 45ch;
+    font-size: clamp(1.03rem, 1.4vw, 1.26rem); color: rgba(247,237,225,.86);
+  }
+  .promessa strong { color: var(--creme); font-weight: 500; }
+
+  .acoes { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 34px; }
+
+  .botao {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 16px 30px; font: inherit; font-weight: 500; font-size: 1rem;
+    border-radius: 999px; border: 1px solid transparent;
+    text-decoration: none; cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease;
+  }
+  .botao.chama {
+    background: linear-gradient(160deg, var(--carmim-alto), var(--carmim));
+    color: #fff; box-shadow: 0 10px 30px -8px rgba(224,58,62,.62);
+  }
+  .botao.chama:hover { transform: translateY(-2px); box-shadow: 0 16px 38px -8px rgba(224,58,62,.72); }
+  .botao.vidro {
+    border-color: rgba(247,237,225,.26); color: var(--creme);
+    background: rgba(247,237,225,.05);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .botao.vidro:hover { border-color: rgba(247,237,225,.58); transform: translateY(-2px); }
+  @media (prefers-reduced-motion: reduce) { .botao:hover { transform: none; } }
+
+  /* ============================================================= seções */
+
+  section { padding-block: clamp(80px, 12vh, 148px); position: relative; }
+  h2 { font-size: clamp(2rem, 4.1vw, 3.35rem); max-width: 17ch; }
+  .conduz { color: var(--areia); max-width: 58ch; margin-top: 20px; }
+
+  /* --------------------------------------------------- a conta do trabalho */
+
+  .conta { background: var(--brasa-funda); }
+
+  .balanca { display: grid; gap: 20px; grid-template-columns: 1fr; margin-top: clamp(42px, 5vw, 64px); }
+  @media (min-width: 860px) { .balanca { grid-template-columns: 1fr 1fr; gap: 26px; } }
+
+  /* Painéis com matéria: o lado manual é opaco e frio, o lado do painel é
+     quente e iluminado. A diferença de tratamento carrega o argumento. */
+  .lado {
+    border-radius: 20px; padding: clamp(26px, 3.2vw, 40px);
+    border: 1px solid rgba(247,237,225,.09);
+    background: linear-gradient(180deg, rgba(247,237,225,.035), rgba(247,237,225,.012));
+  }
+  .lado.depois {
+    border-color: rgba(224,58,62,.34);
+    background:
+      radial-gradient(120% 100% at 12% 0%, rgba(194,24,43,.24), rgba(194,24,43,0) 62%),
+      linear-gradient(180deg, rgba(224,58,62,.09), rgba(224,58,62,.02));
+    box-shadow: 0 24px 60px -34px rgba(224,58,62,.6);
+  }
+
+  .lado h3 { font-size: 1.16rem; font-weight: 700; letter-spacing: -.01em; }
+  .lado.antes h3 { color: var(--areia); }
+  .lado.depois h3 { color: var(--carmim-alto); }
+
+  .tarefas { list-style: none; margin: 22px 0 0; padding: 0; }
+  .tarefas li {
+    padding: 11px 0 11px 32px; position: relative;
+    color: rgba(247,237,225,.62); font-size: .97rem;
+  }
+  .lado.depois .tarefas li { color: rgba(247,237,225,.92); }
+
+  /* Marcadores que informam: risco no que some, chama no que fica. */
+  .tarefas li::before {
+    content: ""; position: absolute; left: 0; top: 21px;
+    width: 16px; height: 1px; background: rgba(247,237,225,.32);
+  }
+  .lado.depois .tarefas li::before {
+    top: 18px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--carmim-alto); box-shadow: 0 0 12px rgba(224,58,62,.8);
+  }
+
+  .conta-final { margin: 26px 0 0; padding-top: 20px; border-top: 1px solid rgba(247,237,225,.1); }
+  .conta-final b {
+    display: block; font-family: var(--display); font-weight: 700;
+    font-size: clamp(1.45rem, 2.5vw, 2.05rem); letter-spacing: -.02em; line-height: 1.1;
+  }
+  .lado.antes .conta-final b { color: rgba(247,237,225,.55); }
+  .lado.depois .conta-final b { color: var(--ouro); }
+  .conta-final small { display: block; color: var(--areia); font-size: .85rem; margin-top: 8px; }
+
+  /* ------------------------------------------------------------- passos */
+
+  .passos { counter-reset: passo; margin-top: clamp(44px, 5vw, 64px); display: grid; gap: 14px; }
+
+  .passo {
+    display: grid; gap: 6px 28px; align-items: start;
+    grid-template-columns: auto 1fr;
+    padding: clamp(24px, 3vw, 34px) clamp(20px, 2.6vw, 34px);
+    border-radius: 18px;
+    border: 1px solid rgba(247,237,225,.08);
+    background: linear-gradient(160deg, rgba(247,237,225,.045), rgba(247,237,225,.01));
+  }
+
+  /* Numeração é legítima: os três passos são mesmo uma sequência. */
+  .passo::before {
+    counter-increment: passo; content: counter(passo);
+    grid-row: span 2;
+    font-family: var(--display); font-weight: 700; font-size: 1.05rem;
+    width: 42px; height: 42px; border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--carmim-alto); background: rgba(224,58,62,.14);
+    border: 1px solid rgba(224,58,62,.34);
+    font-variant-numeric: tabular-nums;
+  }
+  .passo h3 { font-size: clamp(1.22rem, 2vw, 1.55rem); font-weight: 700; letter-spacing: -.02em; }
+  .passo p { margin: 8px 0 0; color: var(--areia); max-width: 56ch; }
+
+  /* -------------------------------------------------------------- preço */
+
+  .planos { display: grid; gap: 20px; grid-template-columns: 1fr; margin-top: clamp(42px, 5vw, 62px); }
+  @media (min-width: 860px) { .planos { grid-template-columns: 1fr 1fr; gap: 24px; } }
+
+  .plano {
+    border-radius: 22px; padding: clamp(28px, 3.4vw, 42px);
+    border: 1px solid rgba(247,237,225,.11);
+    background: linear-gradient(180deg, rgba(247,237,225,.04), rgba(247,237,225,.012));
+  }
+  /* O mensal é o que sustenta o negócio, então é ele que ganha a luz. */
+  .plano.destaque {
+    border-color: rgba(224,58,62,.42);
+    background:
+      radial-gradient(120% 100% at 15% 0%, rgba(194,24,43,.3), rgba(194,24,43,0) 64%),
+      linear-gradient(180deg, rgba(224,58,62,.1), rgba(224,58,62,.02));
+    box-shadow: 0 28px 66px -34px rgba(224,58,62,.66);
+  }
+
+  .etiqueta {
+    display: inline-block; font-size: .78rem; font-weight: 500;
+    padding: 5px 13px; border-radius: 999px; color: var(--areia);
+    background: rgba(247,237,225,.07); border: 1px solid rgba(247,237,225,.12);
+  }
+  .plano.destaque .etiqueta {
+    color: #ffd9d2; background: rgba(224,58,62,.2); border-color: rgba(224,58,62,.42);
+  }
+
+  .valor {
+    margin: 20px 0 4px; font-family: var(--display); font-weight: 800;
+    font-size: clamp(3.1rem, 6vw, 4.4rem); line-height: 1;
+    letter-spacing: -.045em; color: var(--creme);
+    font-variant-numeric: tabular-nums;
+  }
+  .valor i { font-style: normal; font-size: .42em; font-weight: 700; vertical-align: .55em; margin-right: .12em; }
+  .valor em {
+    font-style: normal; font-family: var(--corpo); font-weight: 400;
+    font-size: .2em; letter-spacing: 0; color: var(--areia); margin-left: .5em;
+  }
+  .plano.destaque .valor { color: #fff; }
+
+  .plano h3 {
+    font-size: 1.14rem; font-weight: 700; letter-spacing: -.01em;
+    margin-top: 8px; color: var(--areia);
+  }
+  .plano.destaque h3 { color: var(--carmim-alto); }
+
+  .inclui { list-style: none; margin: 22px 0 0; padding: 0; }
+  .inclui li {
+    position: relative; padding: 10px 0 10px 30px;
+    color: rgba(247,237,225,.8); font-size: .97rem;
+    border-top: 1px solid rgba(247,237,225,.07);
+  }
+  .inclui li::before {
+    content: ""; position: absolute; left: 2px; top: 18px;
+    width: 9px; height: 9px; border-radius: 50%;
+    border: 2px solid rgba(247,237,225,.3);
+  }
+  .plano.destaque .inclui li::before {
+    border-color: transparent; background: var(--carmim-alto);
+    box-shadow: 0 0 12px rgba(224,58,62,.85);
+  }
+
+  /* A condição que passa do pacote fica visível, não escondida em asterisco. */
+  .nota {
+    margin: 22px 0 0; padding-top: 18px;
+    border-top: 1px solid rgba(247,237,225,.09);
+    color: var(--areia); font-size: .89rem;
+  }
+  .nota b { color: var(--creme); font-weight: 500; }
+  .plano.destaque .nota { border-top-color: rgba(255,255,255,.14); color: rgba(255,220,214,.82); }
+  .plano.destaque .nota b { color: #fff; }
+
+  /* -------------------------------------------------------------- prova */
+
+  .prova {
+    background:
+      radial-gradient(100% 80% at 84% 20%, rgba(194,24,43,.28), rgba(194,24,43,0) 62%),
+      var(--brasa-funda);
+  }
+  .relato {
+    max-width: 22ch; margin: 0;
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(1.65rem, 3.4vw, 2.75rem); line-height: 1.1; letter-spacing: -.03em;
+  }
+  .relato em { font-style: normal; color: var(--ouro); }
+  .assinatura { margin-top: 22px; color: var(--areia); font-size: .93rem; }
+
+  .numeros {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    gap: 18px; margin-top: clamp(44px, 5vw, 64px);
+  }
+  .numeros div {
+    padding: 22px 20px; border-radius: 16px;
+    border: 1px solid rgba(247,237,225,.09);
+    background: linear-gradient(170deg, rgba(247,237,225,.05), rgba(247,237,225,.012));
+  }
+  .numeros b {
+    display: block; font-family: var(--display); font-weight: 700;
+    font-size: clamp(1.85rem, 3vw, 2.5rem); letter-spacing: -.03em;
+    color: var(--creme); font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .numeros span { display: block; color: var(--areia); font-size: .87rem; margin-top: 9px; }
+
+  /* -------------------------------------------------------------- final */
+
+  .final {
+    background:
+      radial-gradient(110% 90% at 18% 12%, rgba(224,58,62,.55), rgba(224,58,62,0) 60%),
+      linear-gradient(165deg, var(--carmim) 0%, #9d1023 62%, #7d0c1c 100%);
+    color: #fff;
+  }
+  .final h2 { max-width: 15ch; }
+  .final .conduz { color: rgba(255,255,255,.82); }
+
+  .fechamento { display: grid; gap: clamp(32px, 4vw, 60px); grid-template-columns: 1fr; margin-top: clamp(38px, 4vw, 56px); }
+  @media (min-width: 900px) { .fechamento { grid-template-columns: .95fr 1.05fr; } }
+
+  .zap {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 18px 34px; border-radius: 999px;
+    background: #fff; color: #a8121f; font-weight: 500; text-decoration: none;
+    box-shadow: 0 14px 34px -12px rgba(0,0,0,.55);
+    transition: transform .18s ease;
+  }
+  .zap:hover { transform: translateY(-2px); }
+  @media (prefers-reduced-motion: reduce) { .zap:hover { transform: none; } }
+  .ou { margin-top: 20px; color: rgba(255,255,255,.78); font-size: .93rem; max-width: 32ch; }
+
+  /* O formulário é um cartão claro sobre o vermelho: destaca-se sem gritar. */
+  .cartao-form {
+    background: rgba(255,255,255,.97); border-radius: 22px;
+    padding: clamp(24px, 3vw, 36px);
+    box-shadow: 0 30px 70px -30px rgba(0,0,0,.6);
+  }
+  form { display: grid; gap: 15px; }
+  label { display: block; font-size: .8rem; color: #7c5a52; margin-bottom: 6px; }
+  input {
+    width: 100%; font: inherit; font-size: 1rem; padding: 13px 15px;
+    border: 1px solid #e3d5cd; border-radius: 11px; background: #fdf9f5; color: #2b0a0d;
+  }
+  input::placeholder { color: #b09a92; }
+  input:focus { outline: 3px solid var(--carmim); outline-offset: 1px; background: #fff; }
+
+  form button {
+    justify-self: start; margin-top: 4px; padding: 15px 30px;
+    border: none; border-radius: 999px;
+    background: linear-gradient(160deg, var(--carmim-alto), var(--carmim));
+    color: #fff; font: inherit; font-weight: 500; font-size: 1rem; cursor: pointer;
+    box-shadow: 0 10px 26px -10px rgba(194,24,43,.7);
+  }
+  form button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .recado { font-size: .9rem; padding: 12px 15px; border-radius: 11px; margin: 0; }
+  .recado.bom  { background: #eaf5ee; color: #1f6b3f; }
+  .recado.ruim { background: #fbeceb; color: #a3231a; }
+  .oculto { display: none; }
+
+  footer {
+    padding: 36px var(--margem); color: rgba(247,237,225,.42); font-size: .85rem;
+    display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center;
+    border-top: 1px solid rgba(247,237,225,.07);
+  }
+</style>
+</head>
+<body>
+
+<header class="marca">
+  <span class="selo" aria-hidden="true"></span>
+  Catálogo Pronto
+</header>
+
+<main>
+  <!-- ============================================================ herói -->
+  <section class="heroi">
+    <canvas id="cena" aria-hidden="true"></canvas>
+    <div class="envelope">
+      <h1>
+        <span>Você manda as fotos.</span>
+        <span class="consequencia">A gente monta sua loja.</span>
+      </h1>
+      <p class="promessa">
+        Cadastramos seus produtos um a um, com foto tratada, nome, descrição e
+        categoria. <strong>Em até 48 horas</strong> depois de receber as fotos,
+        sua loja está no ar e você recebe o link para divulgar.
+      </p>
+      <div class="acoes">
+        <a class="botao chama" id="zapTopo" href="#falar">Falar no WhatsApp</a>
+        <a class="botao vidro" href="#preco">Ver quanto custa</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================== a conta -->
+  <section class="conta">
+    <div class="envelope">
+      <h2>Montar a loja é o trabalho que trava todo mundo</h2>
+      <p class="conduz">
+        Não é difícil. É demorado e repetitivo. E é por isso que a loja fica pela
+        metade, com foto sem descrição e produto sem categoria — ou nem sai do papel.
+      </p>
+
+      <div class="balanca">
+        <div class="lado antes">
+          <h3>Fazendo por conta própria</h3>
+          <ul class="tarefas">
+            <li>Descobrir sozinho como a plataforma funciona</li>
+            <li>Abrir o formulário e cadastrar produto por produto</li>
+            <li>Pensar num nome e numa descrição para cada um</li>
+            <li>Organizar tudo em categorias que façam sentido</li>
+            <li>Voltar toda vez que mudar preço ou entrar produto novo</li>
+          </ul>
+          <p class="conta-final">
+            <b>Semanas até o catálogo ficar de pé</b>
+            <small>E o tempo sai de onde você deveria estar vendendo</small>
+          </p>
+        </div>
+
+        <div class="lado depois">
+          <h3>Deixando com a gente</h3>
+          <ul class="tarefas">
+            <li>Você manda as fotos dos produtos pelo WhatsApp</li>
+            <li>A gente monta a loja e cadastra tudo, um a um</li>
+            <li>Nome, descrição e categoria escritos por nós</li>
+            <li>Você recebe o link pronto para divulgar</li>
+            <li>Mudou preço ou chegou produto novo? Você avisa e a gente atualiza</li>
+          </ul>
+          <p class="conta-final">
+            <b>Pronta em até 48 horas</b>
+            <small>Você só manda as fotos. O resto do trabalho é nosso</small>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================== passos -->
+  <section id="como">
+    <div class="envelope">
+      <h2>Do seu lado, só o primeiro passo</h2>
+
+      <div class="passos">
+        <div class="passo">
+          <h3>Você manda as fotos</h3>
+          <p>
+            Foto de celular serve. Mande pelo WhatsApp, junto com o preço de cada
+            produto. É a única parte que depende de você.
+          </p>
+        </div>
+        <div class="passo">
+          <h3>A gente monta a loja em até 48 horas</h3>
+          <p>
+            Tratamos as fotos, criamos a loja, cadastramos cada produto com nome,
+            descrição e categoria, e organizamos as seções. Você não precisa mexer
+            em nada nem aprender plataforma nenhuma.
+          </p>
+        </div>
+        <div class="passo">
+          <h3>Você divulga e a gente mantém</h3>
+          <p>
+            Você recebe o link da loja pronto para mandar no grupo e nos stories.
+            Mudou preço, acabou o estoque, chegou produto novo? Você avisa no WhatsApp
+            e a gente atualiza — inclusive a impressora de pedidos, se der problema.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ preço -->
+  <section class="preco" id="preco">
+    <div class="envelope">
+      <h2>Preço fechado, sem surpresa</h2>
+      <p class="conduz">
+        Um valor para montar e um valor por mês para manter. O que passa do pacote
+        está escrito aqui embaixo, não em letra miúda depois.
+      </p>
+
+      <div class="planos">
+        <div class="plano">
+          <span class="etiqueta">Para começar</span>
+          <p class="valor"><i>R$</i>400<em>uma vez</em></p>
+          <h3>Implementação até 50 produtos</h3>
+          <ul class="inclui">
+            <li>Loja criada e configurada</li>
+            <li>Até 50 produtos cadastrados um a um</li>
+            <li>Foto de cada produto tratada por nós</li>
+            <li>Nome, descrição e categoria escritos por nós</li>
+            <li>Pronta em até 48 horas depois das fotos</li>
+          </ul>
+          <p class="nota">
+            Passou de 50 produtos? <b>R$ 3 por produto a mais</b>, já com o
+            tratamento da foto e o cadastro completo.
+          </p>
+        </div>
+
+        <div class="plano destaque">
+          <span class="etiqueta">Todo mês</span>
+          <p class="valor"><i>R$</i>180<em>por mês</em></p>
+          <h3>Manutenção e suporte</h3>
+          <ul class="inclui">
+            <li>Até 20 produtos novos cadastrados por mês</li>
+            <li>Alterações de preço e de produto quando precisar</li>
+            <li>Ajustes na loja e nas categorias</li>
+            <li>Suporte no WhatsApp para a loja</li>
+            <li>Suporte também na impressora de pedidos</li>
+          </ul>
+          <p class="nota">
+            Sem taxa por venda e sem comissão. O que você fatura é seu.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ prova -->
+  <section class="prova">
+    <div class="envelope">
+      <p class="relato">
+        A loja da BG Produtos da Roça tem <em>136 produtos no ar</em> — queijo da
+        Canastra, goiabada, doces mineiros. Montada por nós.
+      </p>
+      <p class="assinatura">Loja real, catálogo real, cliente real.</p>
+
+      <div class="numeros">
+        <div><b>136</b><span>produtos cadastrados</span></div>
+        <div><b>12</b><span>categorias organizadas</span></div>
+        <div><b>100%</b><span>com foto e descrição</span></div>
+        <div><b>0</b><span>trabalho do lado do cliente</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ final -->
+  <section class="final" id="falar">
+    <div class="envelope">
+      <h2>Manda uma foto e veja como fica</h2>
+      <p class="conduz">
+        Mostre um produto seu. A gente devolve a ficha pronta — nome, descrição e
+        categoria — sem compromisso, para você ver o resultado antes de decidir
+        qualquer coisa.
+      </p>
+
+      <div class="fechamento">
+        <div>
+          <a class="zap" id="zapFinal" href="#">Falar no WhatsApp agora</a>
+          <p class="ou">Prefere que a gente chame você? Deixe seu contato ao lado.</p>
+        </div>
+
+        <div class="cartao-form">
+          <form id="formulario" novalidate>
+            <div>
+              <label for="nome">Seu nome</label>
+              <input type="text" id="nome" name="nome" required autocomplete="name" placeholder="Como podemos te chamar">
+            </div>
+            <div>
+              <label for="whatsapp">WhatsApp</label>
+              <input type="tel" id="whatsapp" name="whatsapp" required autocomplete="tel" placeholder="(00) 00000-0000" inputmode="tel">
+            </div>
+            <div>
+              <label for="loja">Sua loja ou produto</label>
+              <input type="text" id="loja" name="loja" autocomplete="organization" placeholder="Opcional">
+            </div>
+            <button type="submit" id="enviar">Enviar contato</button>
+            <p class="recado oculto" id="recado" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>Catálogo Pronto</span>
+  <span>Cadastro automático de produtos para lojas do Cardapio.ai</span>
+</footer>
+
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+  integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+/* =====================================================================
+   Configuração
+   ===================================================================== */
+const WHATSAPP = '5521998310000';           // troque pelo número real, com 55
+const MENSAGEM = 'Oi! Vi a página do Catálogo Pronto e quero montar a minha loja.';
+const linkZap = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(MENSAGEM)}`;
+document.getElementById('zapTopo').href = linkZap;
+document.getElementById('zapFinal').href = linkZap;
+
+/* =====================================================================
+   Cena 3D — fichas de produto correndo devagar.
+
+   Cada plano não é a foto solta: é a ficha de catálogo desenhada num canvas
+   (cartão creme, foto, nome, peso). É a promessa da página mostrada em vez
+   de descrita — a embalagem virando produto cadastrado.
+   ===================================================================== */
+(function cena3d() {
+  const canvas = document.getElementById('cena');
+  const semMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!window.THREE) return;
+
+  const PRODUTOS = [
+    { arq: 'goiabada',    nome: 'Goiabada Cascão Estação Minas', peso: '1 kg' },
+    { arq: 'queijo',      nome: 'Queijo Minas Canastra Meia Cura', peso: 'Peça inteira' },
+    { arq: 'mel',         nome: 'Mel Puro Apiário Santa Rita', peso: '220 g' },
+    { arq: 'torresmo',    nome: 'Torresmo Caseiro Frito', peso: '250 g' },
+    { arq: 'pacoca',      nome: 'Paçoca Proteica Amendo Ká', peso: '14 unidades' },
+    { arq: 'chips-verde', nome: 'Batata Chips Cebola e Salsa', peso: '150 g' },
+    { arq: 'biscoito',    nome: 'Biscoito Amentela Mantelli', peso: '150 g' },
+    { arq: 'chips-ouro',  nome: 'Batata Chips Alho na Manteiga', peso: '180 g' },
+  ];
+
+  const L = 620, A = 830;          // resolução da ficha
+  const MARGEM = 34;               // espaço para a sombra assada na textura
+
+  function retanguloRedondo(ctx, x, y, l, a, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + l, y, x + l, y + a, r);
+    ctx.arcTo(x + l, y + a, x, y + a, r);
+    ctx.arcTo(x, y + a, x, y, r);
+    ctx.arcTo(x, y, x + l, y, r);
+    ctx.closePath();
+  }
+
+  /** Quebra o texto em no máximo `maxLinhas`, cortando com reticências. */
+  function quebrar(ctx, texto, largura, maxLinhas) {
+    const palavras = texto.split(' ');
+    const linhas = [];
+    let atual = '';
+
+    for (const p of palavras) {
+      const teste = atual ? `${atual} ${p}` : p;
+      if (ctx.measureText(teste).width > largura && atual) {
+        linhas.push(atual);
+        atual = p;
+        if (linhas.length === maxLinhas) break;
+      } else {
+        atual = teste;
+      }
+    }
+    if (linhas.length < maxLinhas && atual) linhas.push(atual);
+
+    if (linhas.length === maxLinhas) {
+      let ultima = linhas[maxLinhas - 1];
+      const sobrou = palavras.join(' ').length > linhas.join(' ').length;
+      if (sobrou) {
+        while (ctx.measureText(`${ultima}…`).width > largura && ultima.length > 4) {
+          ultima = ultima.slice(0, -1);
+        }
+        linhas[maxLinhas - 1] = `${ultima}…`;
+      }
+    }
+    return linhas;
+  }
+
+  function desenharFicha(imagem, produto) {
+    const c = document.createElement('canvas');
+    c.width = L + MARGEM * 2;
+    c.height = A + MARGEM * 2;
+    const ctx = c.getContext('2d');
+
+    // Sombra assada na textura: dá peso de objeto sem custo de luz em tempo real.
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.55)';
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetY = 14;
+    ctx.fillStyle = '#f7ede1';
+    retanguloRedondo(ctx, MARGEM, MARGEM, L, A, 30);
+    ctx.fill();
+    ctx.restore();
+
+    // Foto recortada no topo, em quadrado.
+    const pad = 26;
+    const foto = L - pad * 2;
+    ctx.save();
+    retanguloRedondo(ctx, MARGEM + pad, MARGEM + pad, foto, foto, 18);
+    ctx.clip();
+    const lado = Math.min(imagem.width, imagem.height);
+    ctx.drawImage(
+      imagem,
+      (imagem.width - lado) / 2, (imagem.height - lado) / 2, lado, lado,
+      MARGEM + pad, MARGEM + pad, foto, foto
+    );
+    ctx.restore();
+
+    // Nome e peso, como numa ficha de catálogo.
+    const baseY = MARGEM + pad + foto + 52;
+    ctx.fillStyle = '#2b0a0d';
+    ctx.font = '700 40px "Bricolage Grotesque", sans-serif';
+    ctx.textBaseline = 'alphabetic';
+    quebrar(ctx, produto.nome, foto, 2).forEach((linha, i) => {
+      ctx.fillText(linha, MARGEM + pad, baseY + i * 46);
+    });
+
+    ctx.fillStyle = '#a8887c';
+    ctx.font = '400 28px "Public Sans", sans-serif';
+    ctx.fillText(produto.peso, MARGEM + pad, baseY + 96);
+
+    // Fio vermelho no pé: a marca da ficha, e um respiro de cor.
+    ctx.fillStyle = '#c2182b';
+    ctx.fillRect(MARGEM + pad, MARGEM + A - 30, 62, 5);
+
+    return c;
+  }
+
+  let renderizador;
+  try {
+    renderizador = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  } catch {
+    return;   // sem WebGL a página segue inteira, só sem a cena
+  }
+
+  const cena = new THREE.Scene();
+  // A névoa funde as fichas distantes no vinho do fundo. É o que cria
+  // profundidade de verdade e esconde o ponto onde a fila reinicia.
+  cena.fog = new THREE.Fog(0x2b0a0d, 14, 34);
+
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(0, 0, 15);
+
+  const grupo = new THREE.Group();
+  cena.add(grupo);
+
+  const PASSO = 3.4;
+  const COMPRIMENTO = PRODUTOS.length * PASSO;   // ciclo de uma faixa
+  const fichas = [];
+
+  const proporcao = A / L;
+  const geometria = new THREE.PlaneGeometry(2.45, 2.45 * proporcao);
+
+  /* Três faixas paralelas, cada uma com sua profundidade e velocidade.
+     O parallax entre elas é o que dá volume — uma fileira só ficava esparsa,
+     e a névoa apaga as de trás para a fila não virar parede. */
+  const FAIXAS = [
+    { y: -2.9, z: -1.2, velocidade: 0.62, deslocamento: 0.00 },
+    { y:  0.5, z: -4.3, velocidade: 0.44, deslocamento: 0.38 },
+    { y:  3.6, z: -7.2, velocidade: 0.30, deslocamento: 0.72 },
+  ];
+
+  PRODUTOS.forEach((produto, i) => {
+    const imagem = new Image();
+    imagem.onload = () => {
+      const textura = new THREE.CanvasTexture(desenharFicha(imagem, produto));
+      textura.minFilter = THREE.LinearFilter;
+      textura.anisotropy = renderizador.capabilities.getMaxAnisotropy();
+
+      FAIXAS.forEach((faixa, f) => {
+        // Duas cópias por faixa: enquanto uma sai pela esquerda a outra entra
+        // pela direita, então o ciclo não tem buraco.
+        for (let copia = 0; copia < 2; copia++) {
+          const ficha = new THREE.Mesh(
+            geometria,
+            new THREE.MeshBasicMaterial({ map: textura, transparent: true, opacity: 0, fog: true })
+          );
+
+          // Cada faixa embaralha a ordem dos produtos. Sem isso o mesmo item
+          // aparecia lado a lado nas três faixas, denunciando a repetição.
+          const posicao = (i + f * 3) % PRODUTOS.length;
+
+          ficha.userData = {
+            faixa,
+            x: (posicao + faixa.deslocamento + copia * PRODUTOS.length) * PASSO,
+            fase: i * 1.7 + f * 2.3,
+            nascimento: performance.now() + (i * 3 + f) * 55,
+          };
+
+          grupo.add(ficha);
+          fichas.push(ficha);
+        }
+      });
+    };
+    imagem.src = `fotos/${produto.arq}.jpg`;
+  });
+
+  function dimensionar() {
+    const l = canvas.clientWidth;
+    const a = canvas.clientHeight;
+    renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderizador.setSize(l, a, false);
+    camera.aspect = l / a;
+
+    const estreito = l < 900;
+    camera.position.z = estreito ? 18 : 14;
+    // Em tela larga a fila corre à direita, deixando a coluna do texto livre.
+    grupo.position.x = estreito ? 0 : 5.4;
+    grupo.position.y = estreito ? 0.4 : 0;
+
+    camera.updateProjectionMatrix();
+  }
+
+  const inicio = performance.now();
+  let ativo = true;
+  document.addEventListener('visibilitychange', () => { ativo = !document.hidden; });
+
+  let mouseX = 0;
+  if (!semMovimento) {
+    window.addEventListener('pointermove', (e) => {
+      mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+    }, { passive: true });
+  }
+
+  function quadro(agora) {
+    requestAnimationFrame(quadro);
+    if (!ativo) return;
+
+    const t = (agora - inicio) / 1000;
+
+    fichas.forEach((ficha) => {
+      const d = ficha.userData;
+      const ciclo = COMPRIMENTO * 2;
+
+      // Cada faixa corre para a esquerda no seu ritmo e reentra pela direita.
+      let x = d.x - (semMovimento ? 0 : t * d.faixa.velocidade);
+      x = ((x % ciclo) + ciclo) % ciclo - ciclo / 2;
+
+      ficha.position.x = x;
+      ficha.position.y = d.faixa.y + (semMovimento ? 0 : Math.sin(t * 0.5 + d.fase) * 0.18);
+      ficha.position.z = d.faixa.z;
+
+      // Levemente viradas para dentro: dá volume à fila em vez de parede plana.
+      ficha.rotation.y = -x * 0.03 + (semMovimento ? 0 : Math.sin(t * 0.3 + d.fase) * 0.04);
+      ficha.rotation.z = Math.sin(d.fase) * 0.04;
+
+      // Entrada única, escalonada.
+      const p = Math.min(1, Math.max(0, (agora - d.nascimento) / 1000));
+      ficha.material.opacity = p * p * (3 - 2 * p);
+    });
+
+    if (!semMovimento) {
+      grupo.rotation.y += ((mouseX * 0.09) - grupo.rotation.y) * 0.035;
+    }
+
+    renderizador.render(cena, camera);
+  }
+
+  // As fichas usam as fontes da página; desenhar antes delas carregarem
+  // produziria texto com a fonte errada, congelado na textura.
+  const comecar = () => {
+    dimensionar();
+    window.addEventListener('resize', dimensionar);
+    requestAnimationFrame(quadro);
+  };
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(comecar);
+  } else {
+    comecar();
+  }
+})();
+
+/* =====================================================================
+   Formulário de contato
+   ===================================================================== */
+(function formulario() {
+  const form = document.getElementById('formulario');
+  const botao = document.getElementById('enviar');
+  const recado = document.getElementById('recado');
+
+  const mostrar = (texto, bom) => {
+    recado.textContent = texto;
+    recado.className = 'recado ' + (bom ? 'bom' : 'ruim');
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const dados = {
+      nome: form.nome.value.trim(),
+      whatsapp: form.whatsapp.value.trim(),
+      loja: form.loja.value.trim(),
+    };
+
+    if (!dados.nome || !dados.whatsapp) {
+      mostrar('Preencha o nome e o WhatsApp para a gente conseguir te chamar.', false);
+      return;
+    }
+
+    botao.disabled = true;
+    botao.textContent = 'Enviando';
+
+    try {
+      const r = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(dados),
+      });
+      const corpo = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(corpo.erro || 'não foi possível enviar agora');
+
+      form.reset();
+      mostrar('Contato recebido. A gente chama você no WhatsApp.', true);
+      botao.textContent = 'Enviado';
+    } catch (erro) {
+      mostrar(`${erro.message}. Se preferir, chame direto no WhatsApp.`, false);
+      botao.disabled = false;
+      botao.textContent = 'Enviar contato';
+    }
+  });
+})();
+</script>
+</body>
+</html>

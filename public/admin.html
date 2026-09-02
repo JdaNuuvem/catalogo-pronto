@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lojas — Painel de Produtos</title>
+<style>
+  :root {
+    --fundo:#f6f5f2; --papel:#fff; --tinta:#23201c; --suave:#6d675e; --linha:#e2ddd4;
+    --acento:#a8442a; --acento-claro:#fbf1ed; --ok:#2f6d46; --erro:#a32f22; --raio:10px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--fundo); color:var(--tinta);
+         font:15px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif; }
+  header { background:var(--papel); border-bottom:1px solid var(--linha); padding:14px 26px;
+           display:flex; align-items:center; gap:14px; }
+  header h1 { margin:0; font-size:17px; margin-right:auto; }
+  main { max-width:1080px; margin:0 auto; padding:24px 26px 80px; }
+
+  button { font:inherit; font-size:14px; cursor:pointer; padding:8px 15px; border-radius:7px;
+           border:1px solid var(--linha); background:var(--papel); color:var(--tinta); }
+  button:hover:not(:disabled) { border-color:var(--suave); }
+  button.principal { background:var(--acento); border-color:var(--acento); color:#fff; font-weight:600; }
+  button.principal:hover { background:#8e3823; }
+  button.perigo { color:var(--erro); border-color:#e6b5ae; }
+  button.perigo:hover { background:#fbeceb; }
+
+  .cartao { background:var(--papel); border:1px solid var(--linha); border-radius:var(--raio);
+            padding:20px; margin-bottom:18px; }
+  .cartao h2 { margin:0 0 14px; font-size:16px; }
+  .campos { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+  label { display:block; font-size:12px; color:var(--suave); margin-bottom:4px; }
+  input { width:100%; font:inherit; font-size:14px; padding:8px 10px;
+          border:1px solid var(--linha); border-radius:6px; }
+  input:focus { outline:2px solid var(--acento); outline-offset:-1px; }
+  .dica { font-size:12px; color:var(--suave); margin-top:10px; }
+
+  table { width:100%; border-collapse:collapse; background:var(--papel);
+          border:1px solid var(--linha); border-radius:var(--raio); overflow:hidden; }
+  th,td { text-align:left; padding:11px 14px; border-bottom:1px solid var(--linha); font-size:14px; }
+  th { background:#fcfbfa; font-size:12px; color:var(--suave); font-weight:600; }
+  tr:last-child td { border-bottom:none; }
+  td.acoes { text-align:right; white-space:nowrap; }
+  .marca { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:100px; }
+  .marca.ok { background:#eaf5ee; color:var(--ok); }
+  .marca.falta { background:#fbeceb; color:var(--erro); }
+  .marca.admin { background:var(--acento-claro); color:var(--acento); }
+  a.loja-link { color:var(--acento); font-size:13px; }
+
+  .aviso { padding:11px 15px; border-radius:var(--raio); font-size:13px; margin-bottom:16px;
+           background:#fbeceb; border:1px solid #e6b5ae; color:var(--erro); }
+  .aviso.bom { background:#eaf5ee; border-color:#cfe3d6; color:var(--ok); }
+  .escondido { display:none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lojas</h1>
+  <a href="/"><button type="button">Voltar ao painel</button></a>
+</header>
+
+<main>
+  <div class="aviso escondido" id="aviso"></div>
+
+  <div class="cartao">
+    <h2>Nova loja</h2>
+    <form id="formNova">
+      <div class="campos">
+        <div>
+          <label for="nome">Nome da loja</label>
+          <input type="text" id="nome" required placeholder="BG Produtos da Roça">
+        </div>
+        <div>
+          <label for="email">E-mail de acesso ao painel</label>
+          <input type="email" id="email" required placeholder="cliente@exemplo.com">
+        </div>
+        <div>
+          <label for="senha">Senha do painel</label>
+          <input type="password" id="senha" required minlength="8" placeholder="mínimo 8 caracteres">
+        </div>
+        <div>
+          <label for="cdpEmail">E-mail do Cardapio.ai</label>
+          <input type="email" id="cdpEmail" placeholder="login da loja no Cardapio.ai">
+        </div>
+        <div>
+          <label for="cdpSenha">Senha do Cardapio.ai</label>
+          <input type="password" id="cdpSenha" placeholder="guardada cifrada">
+        </div>
+      </div>
+      <p class="dica">
+        As duas primeiras credenciais são para o cliente entrar <em>neste</em> painel.
+        As do Cardapio.ai são usadas pela automação para cadastrar os produtos na loja dele —
+        ficam cifradas no banco e nunca voltam para a tela.
+      </p>
+      <p style="margin-top:14px"><button type="submit" class="principal">Cadastrar loja</button></p>
+    </form>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Loja</th><th>Acesso ao painel</th><th>Cardapio.ai</th><th>Link público</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="corpo"></tbody>
+  </table>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const escapar = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) =>
+  ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+function avisar(texto, bom) {
+  const el = $('aviso');
+  el.textContent = texto;
+  el.classList.toggle('bom', !!bom);
+  el.classList.remove('escondido');
+  setTimeout(() => el.classList.add('escondido'), 5000);
+}
+
+async function carregar() {
+  const r = await fetch('/api/admin/lojas');
+  if (r.status === 401) { location.href = '/'; return; }
+  if (r.status === 403) { document.body.innerHTML = '<main><p>Área restrita ao administrador.</p></main>'; return; }
+
+  const { lojas } = await r.json();
+  $('corpo').innerHTML = lojas.map((l) => `
+    <tr>
+      <td>
+        ${escapar(l.nome)}
+        ${l.admin ? '<span class="marca admin">admin</span>' : ''}
+        ${l.publicando ? '<span class="marca ok">publicando</span>' : ''}
+      </td>
+      <td>${escapar(l.email)}</td>
+      <td>
+        ${l.cdp_email
+          ? escapar(l.cdp_email) + (l.tem_senha ? ' <span class="marca ok">ok</span>' : ' <span class="marca falta">sem senha</span>')
+          : '<span class="marca falta">não conectada</span>'}
+      </td>
+      <td>${l.cdp_link ? `<a class="loja-link" href="${escapar(l.cdp_link)}" target="_blank" rel="noopener">abrir</a>` : '—'}</td>
+      <td class="acoes">
+        <button type="button" data-acao="credenciais" data-id="${l.id}">Credenciais</button>
+        ${l.admin ? '' : `<button type="button" class="perigo" data-acao="excluir" data-id="${l.id}" data-nome="${escapar(l.nome)}">Excluir</button>`}
+      </td>
+    </tr>`).join('');
+}
+
+$('formNova').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const corpo = {
+    nome: $('nome').value, email: $('email').value, senha: $('senha').value,
+    cdpEmail: $('cdpEmail').value || null, cdpSenha: $('cdpSenha').value || null,
+  };
+
+  const r = await fetch('/api/admin/lojas', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo),
+  });
+  const resposta = await r.json();
+
+  if (!r.ok) { avisar(resposta.erro); return; }
+  avisar('Loja cadastrada. Passe o e-mail e a senha para o cliente.', true);
+  e.target.reset();
+  carregar();
+});
+
+$('corpo').addEventListener('click', async (e) => {
+  const botao = e.target.closest('button');
+  if (!botao) return;
+  const id = botao.dataset.id;
+
+  if (botao.dataset.acao === 'excluir') {
+    if (!confirm(`Excluir a loja "${botao.dataset.nome}"? Isso apaga o acesso dela ao painel.`)) return;
+    const r = await fetch(`/api/admin/lojas/${id}`, { method: 'DELETE' });
+    avisar(r.ok ? 'Loja excluída.' : (await r.json()).erro, r.ok);
+    carregar();
+    return;
+  }
+
+  if (botao.dataset.acao === 'credenciais') {
+    const cdpEmail = prompt('E-mail do Cardapio.ai (deixe vazio para não mudar):');
+    if (cdpEmail === null) return;
+    const cdpSenha = prompt('Senha do Cardapio.ai (deixe vazio para não mudar):');
+    if (cdpSenha === null) return;
+
+    const corpo = {};
+    if (cdpEmail) corpo.cdpEmail = cdpEmail;
+    if (cdpSenha) corpo.cdpSenha = cdpSenha;
+    if (!Object.keys(corpo).length) return;
+
+    const r = await fetch(`/api/admin/lojas/${id}`, {
+      method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo),
+    });
+    avisar(r.ok ? 'Credenciais atualizadas.' : (await r.json()).erro, r.ok);
+    carregar();
+  }
+});
+
+carregar();
+</script>
+</body>
+</html>

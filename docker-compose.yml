@@ -1,0 +1,35 @@
+services:
+  painel:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PASTA_DADOS: /dados
+      # O Chromium roda sem interface na VPS. Deixe "false" so para depurar
+      # numa maquina com tela.
+      HEADLESS: "true"
+    volumes:
+      - dados:/dados
+    # Sem porta publica: quem fala com a internet e o Caddy, que cuida do HTTPS.
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_dados:/data
+      - caddy_config:/config
+    depends_on:
+      - painel
+
+volumes:
+  dados:
+  caddy_dados:
+  caddy_config:

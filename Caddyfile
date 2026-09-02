@@ -1,0 +1,22 @@
+# O Caddy resolve o certificado HTTPS sozinho, via Let's Encrypt, desde que o
+# dominio ja aponte para o IP da VPS antes de subir os containers.
+{$DOMINIO} {
+	encode gzip
+
+	# O progresso da publicacao usa Server-Sent Events: sem desligar o buffer,
+	# o cliente so veria as mensagens todas de uma vez, no fim.
+	reverse_proxy painel:3000 {
+		flush_interval -1
+	}
+
+	# Envio de fotos: o padrao do Caddy e menor que um lote de 60 imagens.
+	request_body {
+		max_size 200MB
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy same-origin
+	}
+}

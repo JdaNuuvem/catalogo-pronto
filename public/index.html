@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Produtos</title>
+<style>
+  :root {
+    --fundo:#f6f5f2; --papel:#fff; --tinta:#23201c; --suave:#6d675e; --linha:#e2ddd4;
+    --acento:#a8442a; --acento-claro:#fbf1ed; --ok:#2f6d46; --alerta:#9a6b12; --erro:#a32f22;
+    --raio:10px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--fundo); color:var(--tinta);
+         font:15px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif; }
+
+  /* ---------------------------------------------------------------- login */
+  .tela-login { min-height:100vh; display:grid; place-items:center; padding:24px; }
+  .caixa-login { background:var(--papel); border:1px solid var(--linha); border-radius:var(--raio);
+                 padding:32px; width:100%; max-width:380px; }
+  .caixa-login h1 { margin:0 0 4px; font-size:20px; }
+  .caixa-login p.sub { margin:0 0 22px; color:var(--suave); font-size:13px; }
+  .campo { margin-bottom:14px; }
+  label { display:block; font-size:12px; color:var(--suave); margin-bottom:4px; }
+  input[type=text],input[type=email],input[type=password],textarea,select {
+    width:100%; font:inherit; font-size:14px; padding:8px 10px;
+    border:1px solid var(--linha); border-radius:6px; background:var(--papel); color:var(--tinta); }
+  input:focus,textarea:focus,select:focus { outline:2px solid var(--acento); outline-offset:-1px; }
+  textarea { resize:vertical; min-height:70px; }
+
+  button { font:inherit; font-size:14px; cursor:pointer; padding:8px 15px;
+           border-radius:7px; border:1px solid var(--linha); background:var(--papel); color:var(--tinta); }
+  button:hover:not(:disabled) { border-color:var(--suave); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  button.principal { background:var(--acento); border-color:var(--acento); color:#fff; font-weight:600; }
+  button.principal:hover:not(:disabled) { background:#8e3823; }
+  button.largo { width:100%; }
+
+  /* ----------------------------------------------------------------- app */
+  header { background:var(--papel); border-bottom:1px solid var(--linha); padding:14px 26px;
+           position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:17px; }
+  header .loja { color:var(--suave); font-size:13px; margin-right:auto; }
+  main { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
+
+  .passos { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+  .passo { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--suave);
+           padding:7px 13px; border:1px solid var(--linha); border-radius:100px; background:var(--papel); }
+  .passo.ativo { border-color:var(--acento); color:var(--acento); background:var(--acento-claro); }
+  .passo.feito { color:var(--ok); border-color:#cfe3d6; background:#f2f8f4; }
+  .passo b { width:19px; height:19px; border-radius:50%; background:var(--suave); color:#fff;
+             font-size:11px; display:grid; place-items:center; }
+  .passo.ativo b { background:var(--acento); }
+  .passo.feito b { background:var(--ok); }
+
+  .solta { border:2px dashed var(--linha); border-radius:var(--raio); background:var(--papel);
+           padding:52px 24px; text-align:center; cursor:pointer; transition:border-color .15s,background .15s; }
+  .solta:hover,.solta.sobre { border-color:var(--acento); background:var(--acento-claro); }
+  .solta h2 { margin:0 0 6px; font-size:17px; }
+  .solta p { margin:0; color:var(--suave); font-size:13px; }
+
+  .barra { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:18px 0;
+           padding:13px 16px; background:var(--papel); border:1px solid var(--linha); border-radius:var(--raio); }
+  .barra .conta { font-size:13px; color:var(--suave); margin-right:auto; }
+
+  .grade { display:grid; gap:14px; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); }
+  .cartao { background:var(--papel); border:1px solid var(--linha); border-radius:var(--raio);
+            overflow:hidden; display:flex; flex-direction:column; }
+  .cartao.reprovado { opacity:.5; }
+  .cartao.revisar { border-color:#e8cf9a; }
+  .cartao.enviando { border-color:var(--acento); }
+  .cartao.enviado { border-color:#cfe3d6; background:#fbfdfb; }
+  .cartao.falhou { border-color:#e6b5ae; background:#fdf7f6; }
+  .cartao .topo { display:flex; gap:13px; padding:13px; border-bottom:1px solid var(--linha); }
+  .cartao img { width:88px; height:88px; object-fit:cover; border-radius:7px; background:var(--fundo); flex:none; }
+  .cartao .arquivo { font-size:12px; color:var(--suave); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .selo { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:100px; margin-top:6px; }
+  .selo.revisar { background:#fdf3e0; color:var(--alerta); }
+  .selo.enviado { background:#eaf5ee; color:var(--ok); }
+  .selo.falhou { background:#fbeceb; color:var(--erro); }
+  .selo.enviando { background:var(--acento-claro); color:var(--acento); }
+  .campos { padding:13px; display:grid; gap:11px; }
+  .contador { font-size:11px; color:var(--suave); text-align:right; margin-top:3px; }
+  .contador.estourou { color:var(--erro); font-weight:600; }
+  .rodape-cartao { padding:10px 13px; border-top:1px solid var(--linha); display:flex;
+                   align-items:center; gap:9px; background:#fcfbfa; font-size:13px; }
+  .rodape-cartao label { margin:0; font-size:13px; color:var(--tinta); cursor:pointer; }
+  .rodape-cartao .msg { margin-left:auto; font-size:12px; color:var(--erro); }
+
+  .painel { position:fixed; right:22px; bottom:22px; width:372px; max-height:62vh; background:var(--papel);
+            border:1px solid var(--linha); border-radius:var(--raio); box-shadow:0 10px 34px rgba(0,0,0,.13);
+            display:none; flex-direction:column; z-index:40; }
+  .painel.aberto { display:flex; }
+  .painel h3 { margin:0; padding:13px 16px; font-size:14px; border-bottom:1px solid var(--linha); }
+  .painel .lista { overflow-y:auto; padding:10px 16px; font-size:13px; }
+  .painel .lista div { padding:3px 0; color:var(--suave); }
+  .painel .lista .ok { color:var(--ok); }
+  .painel .lista .erro { color:var(--erro); }
+  .painel .progresso { height:4px; background:var(--linha); }
+  .painel .progresso i { display:block; height:100%; background:var(--acento); width:0; transition:width .3s; }
+  .painel .mfa { padding:13px 16px; border-top:1px solid var(--linha); display:none; gap:8px; }
+  .painel .mfa.aberto { display:block; }
+  .painel .mfa p { margin:0 0 8px; font-size:12px; color:var(--suave); }
+  .painel .mfa .linha { display:flex; gap:8px; }
+
+  .aviso { padding:11px 15px; border-radius:var(--raio); font-size:13px; margin-bottom:16px;
+           background:#fdf3e0; border:1px solid #ecd9ac; color:#7a5410; }
+  .aviso.ruim { background:#fbeceb; border-color:#e6b5ae; color:var(--erro); }
+
+  .pronto { background:var(--papel); border:1px solid #cfe3d6; border-radius:var(--raio);
+            padding:26px; text-align:center; margin-bottom:18px; }
+  .pronto h2 { margin:0 0 6px; font-size:19px; color:var(--ok); }
+  .pronto p { margin:0 0 16px; color:var(--suave); font-size:14px; }
+  .pronto .link { display:flex; gap:8px; max-width:520px; margin:0 auto; }
+  .pronto .link input { font-size:14px; text-align:center; }
+
+  .escondido { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================== login -->
+<div class="tela-login" id="telaLogin">
+  <form class="caixa-login" id="formLogin">
+    <h1>Painel de Produtos</h1>
+    <p class="sub">Envie as fotos, a gente cria os textos e cadastra na sua loja.</p>
+    <div class="campo">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" autocomplete="username" required>
+    </div>
+    <div class="campo">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" autocomplete="current-password" required>
+    </div>
+    <div class="aviso ruim escondido" id="erroLogin"></div>
+    <button type="submit" class="principal largo">Entrar</button>
+  </form>
+</div>
+
+<!-- ================================================================ app -->
+<div id="app" class="escondido">
+  <header>
+    <h1>Painel de Produtos</h1>
+    <span class="loja" id="nomeLoja"></span>
+    <a id="linkAdmin" class="escondido" href="/admin.html"><button type="button">Lojas</button></a>
+    <button type="button" id="btnSair">Sair</button>
+  </header>
+
+  <main>
+    <div class="passos">
+      <div class="passo ativo" id="passo1"><b>1</b> Enviar fotos</div>
+      <div class="passo" id="passo2"><b>2</b> Revisar</div>
+      <div class="passo" id="passo3"><b>3</b> Publicar</div>
+    </div>
+
+    <div class="aviso ruim escondido" id="avisoConfig"></div>
+
+    <div class="pronto escondido" id="blocoPronto">
+      <h2>Produtos publicados</h2>
+      <p id="textoPronto"></p>
+      <div class="link">
+        <input type="text" id="urlLoja" readonly>
+        <button type="button" class="principal" id="btnCopiar">Copiar</button>
+      </div>
+    </div>
+
+    <div id="areaSolta" class="solta">
+      <h2>Arraste as fotos dos produtos aqui</h2>
+      <p>ou clique para escolher &middot; JPEG, PNG ou WebP at&eacute; 3MB cada</p>
+      <input type="file" id="entradaArquivos" accept="image/png,image/jpeg,image/webp" multiple hidden>
+    </div>
+
+    <div id="barraTopo" class="barra escondido">
+      <span class="conta" id="contagem"></span>
+      <button type="button" id="btnTodos">Aprovar todos</button>
+      <button type="button" id="btnNenhum">Desmarcar todos</button>
+      <button type="button" id="btnLimpar">Recome&ccedil;ar</button>
+      <button type="button" id="btnPublicar" class="principal">Publicar aprovados</button>
+    </div>
+
+    <div class="aviso ruim escondido" id="erroValidacao"></div>
+    <div id="grade" class="grade"></div>
+  </main>
+
+  <div class="painel" id="painelProgresso">
+    <h3>Publicando na sua loja</h3>
+    <div class="progresso"><i id="progresso"></i></div>
+    <div class="lista" id="registro"></div>
+    <div class="mfa" id="areaMfa">
+      <p>O Cardapio.ai enviou um c&oacute;digo por SMS ou e-mail. Digite abaixo para continuar.</p>
+      <div class="linha">
+        <input type="text" id="codigoMfa" placeholder="000000" inputmode="numeric" maxlength="8">
+        <button type="button" class="principal" id="btnMfa">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LIMITE_TITULO = 120;
+const LIMITE_DESCRICAO = 400;
+
+let produtos = [];
+let categorias = [];
+let publicando = false;
+
+const $ = (id) => document.getElementById(id);
+const grade = $('grade');
+
+const escapar = (t) => String(t).replace(/[&<>"]/g, (c) =>
+  ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+// ------------------------------------------------------------------ login
+
+$('formLogin').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const erro = $('erroLogin');
+  erro.classList.add('escondido');
+
+  const r = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: $('email').value, senha: $('senha').value }),
+  });
+  const corpo = await r.json();
+
+  if (!r.ok) {
+    erro.textContent = corpo.erro;
+    erro.classList.remove('escondido');
+    return;
+  }
+  iniciarApp();
+});
+
+$('btnSair').onclick = async () => {
+  await fetch('/api/sair', { method: 'POST' });
+  location.reload();
+};
+
+async function iniciarApp() {
+  const r = await fetch('/api/eu');
+  if (!r.ok) { $('telaLogin').classList.remove('escondido'); $('app').classList.add('escondido'); return; }
+
+  const eu = await r.json();
+  categorias = eu.categorias;
+
+  $('telaLogin').classList.add('escondido');
+  $('app').classList.remove('escondido');
+  $('nomeLoja').textContent = eu.nome;
+  if (eu.admin) $('linkAdmin').classList.remove('escondido');
+
+  const aviso = $('avisoConfig');
+  if (!eu.temCredenciais) {
+    aviso.innerHTML = '<strong>Loja ainda não conectada.</strong> Fale com o administrador para ligar sua conta do Cardapio.ai antes de publicar.';
+    aviso.classList.remove('escondido');
+  } else if (!eu.temChaveIa) {
+    aviso.innerHTML = '<strong>Leitura de fotos indisponível.</strong> A chave da IA não está configurada no servidor.';
+    aviso.classList.remove('escondido');
+  }
+
+  if (eu.linkPublico) mostrarLink(eu.linkPublico, '');
+  if (eu.publicando) { publicando = true; $('painelProgresso').classList.add('aberto'); acompanhar(0); }
+}
+
+// ------------------------------------------------------------------ envio
+
+const areaSolta = $('areaSolta');
+const entrada = $('entradaArquivos');
+const TEXTO_SOLTA = areaSolta.innerHTML;
+
+areaSolta.addEventListener('click', () => entrada.click());
+areaSolta.addEventListener('dragover', (e) => { e.preventDefault(); areaSolta.classList.add('sobre'); });
+areaSolta.addEventListener('dragleave', () => areaSolta.classList.remove('sobre'));
+areaSolta.addEventListener('drop', (e) => {
+  e.preventDefault();
+  areaSolta.classList.remove('sobre');
+  enviarFotos([...e.dataTransfer.files].filter((f) => f.type.startsWith('image/')));
+});
+entrada.addEventListener('change', () => enviarFotos([...entrada.files]));
+
+async function enviarFotos(arquivos) {
+  if (!arquivos.length) return;
+
+  areaSolta.innerHTML = `<h2>Lendo ${arquivos.length} foto(s)…</h2>
+    <p>A inteligência artificial está identificando os produtos. Leva alguns segundos.</p>`;
+
+  const dados = new FormData();
+  arquivos.forEach((a) => dados.append('fotos', a));
+
+  try {
+    const r = await fetch('/api/analisar', { method: 'POST', body: dados });
+    const corpo = await r.json();
+    if (!r.ok) throw new Error(corpo.erro || 'falha ao analisar as fotos');
+
+    produtos = produtos.concat(corpo.produtos);
+    marcarPasso(2);
+    desenhar();
+    areaSolta.classList.add('escondido');
+    $('barraTopo').classList.remove('escondido');
+  } catch (erro) {
+    areaSolta.innerHTML = `<h2>Não deu certo</h2><p>${escapar(erro.message)}</p>`;
+  } finally {
+    entrada.value = '';
+  }
+}
+
+// ----------------------------------------------------------------- revisao
+
+function marcarPasso(n) {
+  [1, 2, 3].forEach((i) => {
+    const el = $('passo' + i);
+    el.classList.toggle('ativo', i === n);
+    el.classList.toggle('feito', i < n);
+  });
+}
+
+function opcoesCategoria(atual) {
+  const vazio = `<option value="" ${atual ? '' : 'selected'} disabled>— escolha uma categoria —</option>`;
+  const lista = !atual || categorias.includes(atual) ? categorias : [atual, ...categorias];
+  return vazio + lista.map((c) => `<option${c === atual ? ' selected' : ''}>${escapar(c)}</option>`).join('');
+}
+
+function desenhar() {
+  grade.innerHTML = produtos.map((p, i) => {
+    const classes = ['cartao'];
+    if (!p.aprovado) classes.push('reprovado');
+    if (p.revisar) classes.push('revisar');
+    if (p.estado) classes.push(p.estado);
+
+    const selo = p.estado === 'enviado' ? '<span class="selo enviado">publicado</span>'
+      : p.estado === 'falhou' ? '<span class="selo falhou">falhou</span>'
+      : p.estado === 'enviando' ? '<span class="selo enviando">enviando…</span>'
+      : p.revisar ? '<span class="selo revisar">precisa revisar</span>' : '';
+
+    return `
+      <div class="${classes.join(' ')}">
+        <div class="topo">
+          <img src="${p.previewUrl}" alt="">
+          <div>
+            <div class="arquivo">${escapar(p.arquivo)}</div>
+            ${selo}
+          </div>
+        </div>
+        <div class="campos">
+          <div>
+            <label>Nome do produto</label>
+            <input type="text" data-campo="titulo" data-i="${i}" value="${escapar(p.titulo)}">
+            <div class="contador ${p.titulo.length > LIMITE_TITULO ? 'estourou' : ''}">${p.titulo.length}/${LIMITE_TITULO}</div>
+          </div>
+          <div>
+            <label>Descrição</label>
+            <textarea data-campo="descricao" data-i="${i}">${escapar(p.descricao)}</textarea>
+            <div class="contador ${p.descricao.length > LIMITE_DESCRICAO ? 'estourou' : ''}">${p.descricao.length}/${LIMITE_DESCRICAO}</div>
+          </div>
+          <div>
+            <label>Categoria</label>
+            <select data-campo="categoria" data-i="${i}">${opcoesCategoria(p.categoria)}</select>
+          </div>
+        </div>
+        <div class="rodape-cartao">
+          <input type="checkbox" id="ap${i}" data-campo="aprovado" data-i="${i}" ${p.aprovado ? 'checked' : ''}>
+          <label for="ap${i}">Aprovado para publicar</label>
+          ${p.erroIa ? `<span class="msg">${escapar(p.erroIa)}</span>` : ''}
+          ${p.erroEnvio ? `<span class="msg">${escapar(p.erroEnvio)}</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  atualizarContagem();
+}
+
+grade.addEventListener('input', (e) => {
+  const campo = e.target.dataset.campo;
+  if (!campo) return;
+  const produto = produtos[Number(e.target.dataset.i)];
+
+  if (campo === 'aprovado') {
+    produto.aprovado = e.target.checked;
+    e.target.closest('.cartao').classList.toggle('reprovado', !produto.aprovado);
+    atualizarContagem();
+    return;
+  }
+
+  produto[campo] = e.target.value;
+
+  if (campo === 'titulo' || campo === 'descricao') {
+    const limite = campo === 'titulo' ? LIMITE_TITULO : LIMITE_DESCRICAO;
+    const contador = e.target.parentElement.querySelector('.contador');
+    contador.textContent = `${e.target.value.length}/${limite}`;
+    contador.classList.toggle('estourou', e.target.value.length > limite);
+  }
+});
+
+function atualizarContagem() {
+  const aprovados = produtos.filter((p) => p.aprovado && p.estado !== 'enviado').length;
+  const publicados = produtos.filter((p) => p.estado === 'enviado').length;
+  $('contagem').textContent = `${produtos.length} fotos · ${aprovados} aprovados`
+    + (publicados ? ` · ${publicados} publicados` : '');
+  $('btnPublicar').disabled = aprovados === 0 || publicando;
+}
+
+$('btnTodos').onclick = () => { produtos.forEach((p) => { if (p.estado !== 'enviado') p.aprovado = true; }); desenhar(); };
+$('btnNenhum').onclick = () => { produtos.forEach((p) => { p.aprovado = false; }); desenhar(); };
+$('btnLimpar').onclick = () => {
+  if (!confirm('Descartar as fotos carregadas?')) return;
+  produtos = [];
+  grade.innerHTML = '';
+  $('barraTopo').classList.add('escondido');
+  areaSolta.classList.remove('escondido');
+  areaSolta.innerHTML = TEXTO_SOLTA;
+  marcarPasso(1);
+};
+
+// ---------------------------------------------------------------- publicar
+
+$('btnPublicar').onclick = async () => {
+  const aprovados = produtos.filter((p) => p.aprovado && p.estado !== 'enviado');
+  if (!aprovados.length) return;
+
+  const caixaErro = $('erroValidacao');
+  caixaErro.classList.add('escondido');
+
+  const validacao = await fetch('/api/validar', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ produtos: aprovados }),
+  }).then((r) => r.json());
+
+  if (!validacao.ok) {
+    caixaErro.innerHTML = '<strong>Corrija antes de publicar:</strong><br>' + validacao.erros.map(escapar).join('<br>');
+    caixaErro.classList.remove('escondido');
+    caixaErro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const r = await fetch('/api/publicar', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ produtos: aprovados }),
+  });
+  const corpo = await r.json();
+
+  if (!r.ok) {
+    caixaErro.innerHTML = escapar(corpo.erro) + (corpo.erros ? '<br>' + corpo.erros.map(escapar).join('<br>') : '');
+    caixaErro.classList.remove('escondido');
+    return;
+  }
+
+  publicando = true;
+  marcarPasso(3);
+  $('painelProgresso').classList.add('aberto');
+  $('registro').innerHTML = '';
+  $('progresso').style.width = '0';
+  atualizarContagem();
+  acompanhar(corpo.total);
+};
+
+function anotar(texto, classe) {
+  const linha = document.createElement('div');
+  if (classe) linha.className = classe;
+  linha.textContent = texto;
+  $('registro').appendChild(linha);
+  $('registro').scrollTop = $('registro').scrollHeight;
+}
+
+function acompanhar(total) {
+  const fonte = new EventSource('/api/eventos');
+  let concluidos = 0;
+
+  fonte.onmessage = (msg) => {
+    const ev = JSON.parse(msg.data);
+    const alvo = ev.id ? produtos.find((p) => p.id === ev.id) : null;
+
+    if (ev.tipo === 'ocioso') { encerrar(fonte); return; }
+    if (ev.tipo === 'etapa') anotar(ev.texto);
+
+    if (ev.tipo === 'mfa') {
+      anotar('aguardando o código de verificação', 'erro');
+      $('areaMfa').classList.add('aberto');
+      $('codigoMfa').focus();
+    }
+
+    if (ev.tipo === 'inicio' && alvo) { alvo.estado = 'enviando'; desenhar(); }
+
+    if (ev.tipo === 'ok' || ev.tipo === 'erro') {
+      concluidos++;
+      if (alvo) {
+        alvo.estado = ev.tipo === 'ok' ? 'enviado' : 'falhou';
+        alvo.erroEnvio = ev.tipo === 'erro' ? ev.erro : null;
+        if (ev.tipo === 'ok') alvo.aprovado = false;
+      }
+      anotar(ev.tipo === 'ok' ? `✓ ${ev.titulo}` : `✗ ${ev.titulo} — ${ev.erro}`, ev.tipo === 'ok' ? 'ok' : 'erro');
+      if (total) $('progresso').style.width = (concluidos / total * 100) + '%';
+      desenhar();
+    }
+
+    if (ev.tipo === 'fim') {
+      anotar(`concluído: ${ev.ok} publicados, ${ev.falhas} com erro`, ev.falhas ? 'erro' : 'ok');
+      if (ev.ok > 0) {
+        mostrarLink(ev.linkPublico, `${ev.ok} produto(s) já estão no ar.`);
+        marcarPasso(4);
+      }
+      encerrar(fonte);
+    }
+
+    if (ev.tipo === 'fatal') { anotar(`interrompido: ${ev.erro}`, 'erro'); encerrar(fonte); }
+  };
+
+  fonte.onerror = () => encerrar(fonte);
+}
+
+function encerrar(fonte) {
+  fonte.close();
+  publicando = false;
+  $('areaMfa').classList.remove('aberto');
+  atualizarContagem();
+}
+
+function mostrarLink(url, texto) {
+  if (!url) return;
+  $('urlLoja').value = url;
+  $('textoPronto').textContent = texto || 'Este é o endereço da sua loja. Divulgue para seus clientes.';
+  $('blocoPronto').classList.remove('escondido');
+  $('blocoPronto').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+$('btnCopiar').onclick = async () => {
+  const campo = $('urlLoja');
+  try {
+    await navigator.clipboard.writeText(campo.value);
+  } catch {
+    // clipboard exige contexto seguro; a selecao deixa o Ctrl+C na mao do usuario
+    campo.select();
+  }
+  $('btnCopiar').textContent = 'Copiado';
+  setTimeout(() => { $('btnCopiar').textContent = 'Copiar'; }, 1800);
+};
+
+$('btnMfa').onclick = enviarMfa;
+$('codigoMfa').addEventListener('keydown', (e) => { if (e.key === 'Enter') enviarMfa(); });
+
+async function enviarMfa() {
+  const codigo = $('codigoMfa').value.trim();
+  if (!codigo) return;
+  await fetch('/api/mfa', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ codigo }),
+  });
+  $('codigoMfa').value = '';
+  $('areaMfa').classList.remove('aberto');
+  anotar('código enviado');
+}
+
+// Se ja houver sessao valida, entra direto.
+fetch('/api/eu').then((r) => { if (r.ok) iniciarApp(); });
+</script>
+</body>
+</html>
