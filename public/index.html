@@ -79,6 +79,7 @@
   .selo.enviado { background:#eaf5ee; color:var(--ok); }
   .selo.falhou { background:#fbeceb; color:var(--erro); }
   .selo.enviando { background:var(--acento-claro); color:var(--acento); }
+  .selo.incerto { background:#eef4fb; color:#1f4a72; }
   .campos { padding:13px; display:grid; gap:11px; }
   .contador { font-size:11px; color:var(--suave); text-align:right; margin-top:3px; }
   .contador.estourou { color:var(--erro); font-weight:600; }
@@ -283,7 +284,7 @@ async function restaurarLote() {
   const r = await fetch('/api/lote');
   if (!r.ok) return;
 
-  const { produtos: gravados } = await r.json();
+  const { lote, produtos: gravados } = await r.json();
   if (!gravados.length) return;
 
   produtos = gravados;
@@ -294,6 +295,23 @@ async function restaurarLote() {
   desenhar();
   areaSolta.classList.add('escondido');
   $('barraTopo').classList.remove('escondido');
+
+  // O servidor pode ter reiniciado e retomado o lote sozinho. Nesse caso a
+  // publicação já está correndo agora: a tela se pluga no acompanhamento em
+  // vez de mostrar um lote parado esperando clique.
+  if (lote.publicando) {
+    publicando = true;
+    marcarPasso(3);
+    $('painelProgresso').classList.add('aberto');
+    avisarRetomada('O servidor reiniciou e está terminando a publicação sozinho. Acompanhe abaixo.');
+    acompanhar(produtos.filter((p) => p.aprovado && p.estado !== 'enviado').length);
+    return;
+  }
+
+  if (lote.motivo) {
+    avisarRetomada(`Publicação interrompida: ${lote.motivo}`);
+    return;
+  }
 
   if (publicados || falhas) {
     const partes = [];
@@ -377,6 +395,7 @@ function desenhar() {
     if (p.estado) classes.push(p.estado);
 
     const selo = p.estado === 'enviado' ? '<span class="selo enviado">publicado</span>'
+      : p.estado === 'incerto' ? '<span class="selo incerto">conferindo na loja</span>'
       : p.estado === 'falhou' ? '<span class="selo falhou">falhou</span>'
       : p.estado === 'enviando' ? '<span class="selo enviando">enviando…</span>'
       : p.revisar ? '<span class="selo revisar">precisa revisar</span>' : '';
@@ -623,7 +642,9 @@ function acompanhar(total) {
         alvo.erroEnvio = ev.tipo === 'erro' ? ev.erro : null;
         if (ev.tipo === 'ok') alvo.aprovado = false;
       }
-      anotar(ev.tipo === 'ok' ? `✓ ${ev.titulo}` : `✗ ${ev.titulo} — ${ev.erro}`, ev.tipo === 'ok' ? 'ok' : 'erro');
+      anotar(ev.tipo === 'ok'
+        ? (ev.jaEstava ? `✓ ${ev.titulo} — já estava na loja` : `✓ ${ev.titulo}`)
+        : `✗ ${ev.titulo} — ${ev.erro}`, ev.tipo === 'ok' ? 'ok' : 'erro');
       if (total) $('progresso').style.width = (concluidos / total * 100) + '%';
       desenhar();
     }

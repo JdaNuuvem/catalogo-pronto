@@ -216,7 +216,7 @@ function paraFicha(linha) {
     revisar: !linha.titulo && linha.estado !== 'enviado',
     estado: linha.estado === 'pendente' ? null : linha.estado,
     erroIa: linha.estado === 'pendente' ? linha.erro : null,
-    erroEnvio: linha.estado === 'falhou' ? linha.erro : null,
+    erroEnvio: ['falhou', 'incerto'].includes(linha.estado) ? linha.erro : null,
   };
 }
 
@@ -229,7 +229,16 @@ app.get('/api/lote', exigirLogin, (req, res) => {
 
   const linhas = banco.itensDoLote(db, lote.id);
   res.json({
-    lote: { id: lote.id, estado: lote.estado, criadoEm: lote.criado_em },
+    lote: {
+      id: lote.id,
+      estado: lote.estado,
+      criadoEm: lote.criado_em,
+      motivo: lote.motivo || null,
+      // Uma retomada automatica pode estar rodando agora, sem que ninguem
+      // tenha clicado em nada: a tela precisa saber para se plugar no
+      // acompanhamento em vez de mostrar um lote parado.
+      publicando: fila.estaOcupada(lote.loja_id),
+    },
     produtos: linhas.map(paraFicha),
   });
 });
@@ -318,6 +327,16 @@ app.post('/api/publicar', exigirLogin, (req, res) => {
   const erros = produtos.flatMap((p, i) => cardapio.validarProduto(p, i));
   if (erros.length) return res.status(400).json({ erro: 'produtos invalidos', erros });
 
+  enfileirarPublicacao({ loja, credenciais, lote, produtos });
+  res.json({ iniciado: true, total: produtos.length });
+});
+
+/**
+ * Coloca o lote na fila e mantem o banco em dia com o que a automacao faz.
+ * E o mesmo caminho usado pelo botao "Publicar" e pela retomada automatica —
+ * um so lugar que sabe registrar progresso, para os dois nunca divergirem.
+ */
+function enfileirarPublicacao({ loja, credenciais, lote, produtos, conferirDuplicados }) {
   banco.estadoLote(db, lote.id, 'publicando');
 
   fila.iniciar(loja.id, produtos.length, async (trabalho) => {
@@ -337,6 +356,7 @@ app.post('/api/publicar', exigirLogin, (req, res) => {
         perfil: path.join(PASTA_PERFIS, String(loja.id)),
         pedirCodigoMfa: trabalho.pedirCodigoMfa,
         aoProgredir: anotar,
+        conferirDuplicados,
       });
 
       if (linkPublico) {
@@ -350,13 +370,11 @@ app.post('/api/publicar', exigirLogin, (req, res) => {
     } catch (erro) {
       // Falhou antes de terminar (login, MFA, rede). O lote volta a ser
       // rascunho para o dono retentar so o que ficou faltando.
-      banco.estadoLote(db, lote.id, 'rascunho');
+      banco.devolverParaRevisao(db, lote.id, erro.message);
       throw erro;
     }
   });
-
-  res.json({ iniciado: true, total: produtos.length });
-});
+}
 
 app.post('/api/mfa', exigirLogin, (req, res) => {
   const trabalho = fila.obter(req.loja.id);
@@ -557,18 +575,120 @@ if (totalLojas === 0 && process.env.ADMIN_EMAIL && process.env.ADMIN_SENHA) {
   console.log(`  administrador criado: ${process.env.ADMIN_EMAIL}`);
 }
 
+// ------------------------------------------------------- retomada automatica
+
+// Tres tentativas: se o processo morre sempre no mesmo lote, o problema nao e
+// azar, e insistir viraria um ciclo de reinicios. Na quarta o lote volta para
+// revisao manual com o motivo escrito na tela.
+const MAXIMO_RETOMADAS = 3;
+
+// A retomada roda sem ninguem na frente da tela. Se o Cardapio.ai pedir o
+// codigo de verificacao, o cliente so responde se estiver com a pagina aberta
+// — e o pedido chega la pelo mesmo canal de eventos da publicacao normal.
+// Passado esse tempo sem resposta, desiste em vez de segurar o navegador
+// aberto para sempre.
+const ESPERA_MFA_MS = 5 * 60 * 1000;
+
+/**
+ * Chamado na subida. Um lote que ficou "publicando" e um trabalho que morreu
+ * junto com o processo: o servidor continua de onde parou, sem pedir nada ao
+ * cliente.
+ *
+ * O produto que estava em transito na hora da queda pode ter sido salvo ou
+ * nao. Por isso a retomada comeca perguntando para a propria loja o que ja
+ * esta la, e so envia o que realmente faltou.
+ */
+function retomarPublicacoes() {
+  let lotes;
+  try {
+    lotes = banco.recuperarLotesInterrompidos(db);
+  } catch (erro) {
+    console.log(`  aviso: nao foi possivel ler os lotes interrompidos (${erro.message})`);
+    return;
+  }
+  if (!lotes.length) return;
+
+  for (const lote of lotes) {
+    const loja = db.prepare('SELECT * FROM lojas WHERE id = ?').get(lote.loja_id);
+    const incertos = banco.itensIncertos(db, lote.id).length;
+
+    if (!loja) {
+      banco.devolverParaRevisao(db, lote.id, 'a loja do lote nao existe mais');
+      continue;
+    }
+
+    if (lote.tentativas > MAXIMO_RETOMADAS) {
+      console.log(`  lote ${lote.id}: ${lote.tentativas} tentativas sem sucesso, devolvido para revisao`);
+      banco.devolverParaRevisao(db, lote.id,
+        `a publicacao foi interrompida ${lote.tentativas} vezes seguidas. Confira a loja antes de tentar de novo.`);
+      continue;
+    }
+
+    let credenciais;
+    try {
+      credenciais = banco.credenciaisCardapio(loja);
+    } catch {
+      banco.devolverParaRevisao(db, lote.id, 'a loja perdeu as credenciais do Cardapio.ai');
+      continue;
+    }
+
+    const pendentes = banco.itensDoLote(db, lote.id)
+      .filter((i) => i.aprovado && i.estado !== 'enviado');
+
+    if (!pendentes.length) {
+      banco.fecharSeTerminou(db, lote.id);
+      continue;
+    }
+
+    let produtos;
+    try {
+      produtos = prepararProdutos(loja.id, pendentes.map(paraFicha));
+    } catch {
+      banco.devolverParaRevisao(db, lote.id, 'uma das fotos do lote sumiu do disco');
+      continue;
+    }
+
+    console.log(`  retomando lote ${lote.id} da loja "${loja.nome}": ${produtos.length} produto(s)`
+      + (incertos ? `, ${incertos} a conferir na loja` : '')
+      + ` (tentativa ${lote.tentativas})`);
+
+    try {
+      enfileirarPublicacao({
+        loja, credenciais, lote, produtos,
+        // Sempre confere: e justamente o produto em transito que corre o
+        // risco de entrar duas vezes no catalogo do cliente.
+        conferirDuplicados: true,
+      });
+      aplicarLimiteMfa(loja.id, lote.id);
+    } catch (erro) {
+      banco.devolverParaRevisao(db, lote.id, erro.message);
+    }
+  }
+}
+
+/** Desiste da retomada se o codigo de verificacao nao vier a tempo. */
+function aplicarLimiteMfa(lojaId, loteId) {
+  const relogio = setInterval(() => {
+    const trabalho = fila.obter(lojaId);
+    if (!trabalho || !trabalho.ativo) return clearInterval(relogio);
+    if (!trabalho.aguardandoMfa) return;
+
+    if (Date.now() - (trabalho.mfaDesde || Date.now()) > ESPERA_MFA_MS) {
+      clearInterval(relogio);
+      trabalho.emitir({ tipo: 'etapa', texto: 'ninguem respondeu o codigo de verificacao; parando por aqui' });
+      banco.devolverParaRevisao(db, loteId,
+        'a retomada precisou do codigo de verificacao e nao havia ninguem para informar. Publique de novo com a pagina aberta.');
+      trabalho.responderMfa('');
+    }
+  }, 15000);
+  relogio.unref?.();
+}
+
 app.listen(PORTA, () => {
   console.log(`\n  Painel de produtos  ->  http://localhost:${PORTA}`);
   console.log(`  dados em ${PASTA_DADOS}`);
 
-  // A fila de publicacao vive na memoria do processo: se o servidor caiu no
-  // meio de um lote, nao ha o que retomar sozinho. O que da para fazer e
-  // devolver o lote ao estado de rascunho, com o que ja subiu preservado,
-  // para o dono publicar so o que faltou.
-  const recuperados = banco.recuperarLotesInterrompidos(db);
-  if (recuperados) {
-    console.log(`  ${recuperados} publicacao(oes) interrompida(s) devolvida(s) para revisao`);
-  }
+  retomarPublicacoes();
 
   const cfgIa = ia.configuracaoAtual(configIa());
   if (cfgIa.temChave) {
