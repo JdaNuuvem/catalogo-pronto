@@ -250,7 +250,19 @@ $('btnTestar').onclick = async () => {
   });
   const d = await r.json();
 
-  avisar(r.ok ? `Conexão ok: ${d.rotulo} respondeu com o modelo ${d.modelo}.` : `Falhou: ${d.erro}`, r.ok);
+  let recado;
+  if (!r.ok) {
+    recado = `Falhou: ${d.erro}`;
+  } else {
+    recado = `Conexão ok: ${d.rotulo} respondeu com o modelo ${d.modelo}.`;
+    if (d.saldo && !d.saldo.semLimite) {
+      const sobra = d.saldo.restante;
+      recado += ` Crédito restante: US$ ${sobra.toFixed(2)}.`;
+      // Chave válida com saldo curto passa no teste e quebra na leitura real.
+      if (sobra < 1) recado += ' Isso não dá para ler um lote de fotos — adicione crédito.';
+    }
+  }
+  avisar(recado, r.ok && !(d.saldo && !d.saldo.semLimite && d.saldo.restante < 1));
   botao.disabled = false;
   botao.textContent = 'Testar conexão';
 };
