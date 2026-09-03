@@ -136,11 +136,55 @@ mostrar('Contato recebido. A gente chama você no WhatsApp.', true);
 |---|---|---|
 | `CHAVE_SESSAO` | sim | assina os cookies. Mudar desloga todo mundo |
 | `CHAVE_CRIPTO` | sim | cifra as senhas do Cardapio.ai. **Perder = credenciais ilegíveis** |
-| `ANTHROPIC_API_KEY` | sim | leitura das fotos pela IA |
+| `ANTHROPIC_API_KEY` | uma das duas | leitura das fotos pela IA |
+| `OPENROUTER_API_KEY` | uma das duas | leitura das fotos pela IA, via OpenRouter |
+| `IA_PROVEDOR` | não | `anthropic` ou `openrouter`. Sem isso, vale a chave preenchida |
+| `IA_MODELO` | não | troca o modelo. Precisa aceitar imagem |
+| `OPENROUTER_SITE` | não | seu domínio, para aparecer nos rankings do OpenRouter |
 | `DOMINIO` | sim | domínio do painel, usado pelo Caddy |
 | `ADMIN_EMAIL` / `ADMIN_SENHA` | 1ª vez | cria a conta de administrador na primeira execução |
 | `HEADLESS` | não | `false` abre o navegador com tela, só para depurar |
 | `PAUSA_MS` | não | espera entre um produto e outro (padrão 1200) |
+
+> O `.env.exemplo` ainda lista só a `ANTHROPIC_API_KEY` — acrescente as linhas
+> de OpenRouter à mão a partir da tabela acima.
+
+## Escolher a IA que lê as fotos
+
+Dois provedores atendidos. Defina **uma** das chaves:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...        # ou
+OPENROUTER_API_KEY=sk-or-...
+```
+
+Com as duas definidas, `IA_PROVEDOR` decide (`anthropic` ou `openrouter`).
+Trocar de provedor é só mudar variável e reiniciar — nenhum código muda.
+
+| Provedor | Modelo padrão | Onde pegar a chave |
+|---|---|---|
+| `anthropic` | `claude-sonnet-5` | console.anthropic.com |
+| `openrouter` | `google/gemini-2.5-flash` | openrouter.ai/keys |
+
+**Trocar de modelo** com `IA_MODELO`. Ele precisa aceitar imagem — o trabalho é
+ler o rótulo da embalagem. Alguns que conferi no catálogo do OpenRouter, do mais
+barato ao mais caro por milhão de tokens de entrada:
+
+| `IA_MODELO` | Entrada |
+|---|---|
+| `qwen/qwen3.7-flash` | US$ 0,03 |
+| `openai/gpt-4o-mini` | US$ 0,15 |
+| `openai/gpt-5-mini` | US$ 0,25 |
+| `google/gemini-2.5-flash` | US$ 0,30 |
+| `google/gemini-2.5-pro` | US$ 1,25 |
+| `anthropic/claude-sonnet-5` | US$ 2,00 |
+
+Preço não é o único critério: modelo fraco lê rótulo errado, e aí alguém revisa
+o texto à mão — o que era o trabalho que o painel deveria eliminar. Vale testar
+com fotos reais antes de fixar o mais barato.
+
+Logado como administrador, o topo do painel mostra qual provedor e modelo estão
+ativos. O cliente não vê essa informação.
 
 As duas chaves precisam de **pelo menos 32 caracteres**. O servidor recusa subir sem elas.
 

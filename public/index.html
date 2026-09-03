@@ -254,8 +254,13 @@ async function iniciarApp() {
     aviso.innerHTML = '<strong>Loja ainda não conectada.</strong> Fale com o administrador para ligar sua conta do Cardapio.ai antes de publicar.';
     aviso.classList.remove('escondido');
   } else if (!eu.temChaveIa) {
-    aviso.innerHTML = '<strong>Leitura de fotos indisponível.</strong> A chave da IA não está configurada no servidor.';
+    aviso.innerHTML = '<strong>Leitura de fotos indisponível.</strong> Nenhuma chave de IA está configurada no servidor.';
     aviso.classList.remove('escondido');
+  }
+
+  // Só o administrador vê qual provedor está ativo — o cliente não precisa saber.
+  if (eu.ia && eu.ia.temChave) {
+    $('nomeLoja').textContent = `${eu.nome} · IA: ${eu.ia.rotulo} (${eu.ia.modelo})`;
   }
 
   if (eu.linkPublico) mostrarLink(eu.linkPublico, '');

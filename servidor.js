@@ -101,13 +101,15 @@ app.post('/api/sair', (req, res) => {
 
 app.get('/api/eu', exigirLogin, (req, res) => {
   const trabalho = fila.obter(req.loja.id);
+  const ia_ = ia.configuracaoAtual();
   res.json({
     nome: req.loja.nome,
     admin: !!req.loja.admin,
     linkPublico: req.loja.cdp_link || null,
     temCredenciais: !!(req.loja.cdp_email && req.loja.cdp_senha),
     publicando: !!(trabalho && trabalho.ativo),
-    temChaveIa: !!process.env.ANTHROPIC_API_KEY,
+    temChaveIa: ia_.temChave,
+    ia: req.loja.admin ? ia_ : undefined,   // provedor e modelo so interessam ao admin
     categorias: lerCategorias(),
   });
 });
@@ -124,7 +126,8 @@ app.post('/api/analisar', exigirLogin, upload.array('fotos', MAXIMO_FOTOS), asyn
   for (let i = 0; i < imagens.length; i += LOTE_IA) {
     const lote = imagens.slice(i, i + LOTE_IA);
     try {
-      const itens = await ia.descreverImagens(lote, categorias, process.env.ANTHROPIC_API_KEY);
+      // O provedor e o modelo saem do ambiente (IA_PROVEDOR / IA_MODELO).
+      const itens = await ia.descreverImagens(lote, categorias);
       itens.forEach((item, j) => produtos.push(montarProduto(req.loja.id, lote[j], item)));
     } catch (erro) {
       lote.forEach((imagem) => produtos.push(montarProduto(req.loja.id, imagem, null, erro.message)));
@@ -371,7 +374,12 @@ if (totalLojas === 0 && process.env.ADMIN_EMAIL && process.env.ADMIN_SENHA) {
 app.listen(PORTA, () => {
   console.log(`\n  Painel de produtos  ->  http://localhost:${PORTA}`);
   console.log(`  dados em ${PASTA_DADOS}`);
-  if (!process.env.ANTHROPIC_API_KEY) console.log('  aviso: ANTHROPIC_API_KEY ausente, a leitura das fotos vai falhar');
+  const cfgIa = ia.configuracaoAtual();
+  if (cfgIa.temChave) {
+    console.log(`  IA: ${cfgIa.rotulo} (${cfgIa.modelo})`);
+  } else {
+    console.log('  aviso: sem chave de IA (ANTHROPIC_API_KEY ou OPENROUTER_API_KEY), a leitura das fotos vai falhar');
+  }
   if (db.prepare('SELECT COUNT(*) AS n FROM lojas').get().n === 0) {
     console.log('  aviso: nenhuma conta cadastrada. Defina ADMIN_EMAIL e ADMIN_SENHA e reinicie.');
   }
