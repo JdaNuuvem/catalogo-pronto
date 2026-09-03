@@ -106,6 +106,8 @@
   .aviso { padding:11px 15px; border-radius:var(--raio); font-size:13px; margin-bottom:16px;
            background:#fdf3e0; border:1px solid #ecd9ac; color:#7a5410; }
   .aviso.ruim { background:#fbeceb; border-color:#e6b5ae; color:var(--erro); }
+  .aviso.retomada { background:#eef4fb; border-color:#c3d7ea; color:#1f4a72; }
+  .marca-salvo { font-size:12px; color:var(--ok); }
 
   .pronto { background:var(--papel); border:1px solid #cfe3d6; border-radius:var(--raio);
             padding:26px; text-align:center; margin-bottom:18px; }
@@ -154,6 +156,7 @@
     </div>
 
     <div class="aviso ruim escondido" id="avisoConfig"></div>
+    <div class="aviso retomada escondido" id="avisoRetomada"></div>
 
     <div class="pronto escondido" id="blocoPronto">
       <h2>Produtos publicados</h2>
@@ -172,6 +175,7 @@
 
     <div id="barraTopo" class="barra escondido">
       <span class="conta" id="contagem"></span>
+      <span class="marca-salvo escondido" id="marcaSalvo"></span>
       <button type="button" id="btnTodos">Aprovar todos</button>
       <button type="button" id="btnNenhum">Desmarcar todos</button>
       <button type="button" id="btnLimpar">Recome&ccedil;ar</button>
@@ -264,7 +268,47 @@ async function iniciarApp() {
   }
 
   if (eu.linkPublico) mostrarLink(eu.linkPublico, '');
+
+  await restaurarLote();
+
   if (eu.publicando) { publicando = true; $('painelProgresso').classList.add('aberto'); acompanhar(0); }
+}
+
+/**
+ * O trabalho em andamento mora no servidor. Ao abrir a pagina a tela se
+ * reconstroi a partir dele — fechar a aba no meio de 50 produtos deixou de
+ * custar o lote inteiro.
+ */
+async function restaurarLote() {
+  const r = await fetch('/api/lote');
+  if (!r.ok) return;
+
+  const { produtos: gravados } = await r.json();
+  if (!gravados.length) return;
+
+  produtos = gravados;
+  const publicados = produtos.filter((p) => p.estado === 'enviado').length;
+  const falhas = produtos.filter((p) => p.estado === 'falhou').length;
+
+  marcarPasso(2);
+  desenhar();
+  areaSolta.classList.add('escondido');
+  $('barraTopo').classList.remove('escondido');
+
+  if (publicados || falhas) {
+    const partes = [];
+    if (publicados) partes.push(`${publicados} já publicado(s)`);
+    if (falhas) partes.push(`${falhas} com erro, prontos para tentar de novo`);
+    avisarRetomada(`Trabalho recuperado: ${partes.join(' e ')}.`);
+  } else {
+    avisarRetomada(`Retomando de onde você parou: ${produtos.length} foto(s) aguardando revisão.`);
+  }
+}
+
+function avisarRetomada(texto) {
+  const el = $('avisoRetomada');
+  el.textContent = texto;
+  el.classList.remove('escondido');
 }
 
 // ------------------------------------------------------------------ envio
@@ -383,6 +427,7 @@ grade.addEventListener('input', (e) => {
     produto.aprovado = e.target.checked;
     e.target.closest('.cartao').classList.toggle('reprovado', !produto.aprovado);
     atualizarContagem();
+    guardar(produto, campo);
     return;
   }
 
@@ -394,23 +439,107 @@ grade.addEventListener('input', (e) => {
     contador.textContent = `${e.target.value.length}/${limite}`;
     contador.classList.toggle('estourou', e.target.value.length > limite);
   }
+
+  guardar(produto, campo);
 });
+
+/* ---------------------------------------------------------------------
+   Gravacao da revisao.
+
+   Cada tecla nao vira um pedido ao servidor: espera-se meio segundo de
+   silencio por ficha antes de gravar. Digitar uma descricao inteira custa
+   um pedido, nao sessenta — e o trabalho continua salvo se a aba fechar.
+   --------------------------------------------------------------------- */
+const relogios = new Map();
+
+function guardar(produto, campo) {
+  clearTimeout(relogios.get(produto.id));
+  relogios.set(produto.id, setTimeout(async () => {
+    relogios.delete(produto.id);
+    try {
+      await fetch('/api/lote/item', {
+        method: 'PUT', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          id: produto.id, titulo: produto.titulo, descricao: produto.descricao,
+          categoria: produto.categoria, aprovado: produto.aprovado,
+        }),
+      });
+      marcarSalvo();
+    } catch {
+      // Sem rede: o valor segue na tela e vai junto na proxima gravacao.
+    }
+  }, campo === 'aprovado' || campo === 'categoria' ? 0 : 500));
+}
+
+/** Grava tudo agora, sem esperar o intervalo. Usado antes de publicar. */
+async function guardarTudo() {
+  relogios.forEach((t) => clearTimeout(t));
+  relogios.clear();
+  await Promise.all(produtos
+    .filter((p) => p.estado !== 'enviado')
+    .map((p) => fetch('/api/lote/item', {
+      method: 'PUT', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        id: p.id, titulo: p.titulo, descricao: p.descricao,
+        categoria: p.categoria, aprovado: p.aprovado,
+      }),
+    }).catch(() => null)));
+}
+
+let relogioSalvo;
+function marcarSalvo() {
+  const el = $('marcaSalvo');
+  el.textContent = 'alterações salvas';
+  el.classList.remove('escondido');
+  clearTimeout(relogioSalvo);
+  relogioSalvo = setTimeout(() => el.classList.add('escondido'), 2500);
+}
 
 function atualizarContagem() {
   const aprovados = produtos.filter((p) => p.aprovado && p.estado !== 'enviado').length;
   const publicados = produtos.filter((p) => p.estado === 'enviado').length;
+  const falhas = produtos.filter((p) => p.estado === 'falhou' && p.aprovado).length;
+
   $('contagem').textContent = `${produtos.length} fotos · ${aprovados} aprovados`
-    + (publicados ? ` · ${publicados} publicados` : '');
+    + (publicados ? ` · ${publicados} publicados` : '')
+    + (falhas ? ` · ${falhas} com erro` : '');
+
+  // Depois de uma publicacao parcial o botao deixa de dizer "publicar tudo":
+  // o que ele faz e reenviar so o que ficou pelo caminho.
+  $('btnPublicar').textContent = falhas && falhas === aprovados
+    ? `Tentar de novo (${falhas})`
+    : 'Publicar aprovados';
   $('btnPublicar').disabled = aprovados === 0 || publicando;
 }
 
-$('btnTodos').onclick = () => { produtos.forEach((p) => { if (p.estado !== 'enviado') p.aprovado = true; }); desenhar(); };
-$('btnNenhum').onclick = () => { produtos.forEach((p) => { p.aprovado = false; }); desenhar(); };
-$('btnLimpar').onclick = () => {
-  if (!confirm('Descartar as fotos carregadas?')) return;
+$('btnTodos').onclick = async () => {
+  produtos.forEach((p) => { if (p.estado !== 'enviado') p.aprovado = true; });
+  desenhar();
+  await guardarTudo();
+  marcarSalvo();
+};
+
+$('btnNenhum').onclick = async () => {
+  produtos.forEach((p) => { p.aprovado = false; });
+  desenhar();
+  await guardarTudo();
+  marcarSalvo();
+};
+
+$('btnLimpar').onclick = async () => {
+  const publicados = produtos.filter((p) => p.estado === 'enviado').length;
+  const texto = publicados
+    ? `Descartar as fichas em revisão? Os ${publicados} produto(s) já publicados continuam na loja.`
+    : 'Descartar as fotos carregadas?';
+  if (!confirm(texto)) return;
+
+  // Descarta tambem no servidor: senao a proxima visita ressuscitaria o lote.
+  await fetch('/api/lote/descartar', { method: 'POST' }).catch(() => null);
+
   produtos = [];
   grade.innerHTML = '';
   $('barraTopo').classList.add('escondido');
+  $('avisoRetomada').classList.add('escondido');
   areaSolta.classList.remove('escondido');
   areaSolta.innerHTML = TEXTO_SOLTA;
   marcarPasso(1);
@@ -425,6 +554,10 @@ $('btnPublicar').onclick = async () => {
   const caixaErro = $('erroValidacao');
   caixaErro.classList.add('escondido');
 
+  // O servidor publica o que esta gravado, entao a ultima tecla digitada
+  // precisa chegar la antes de o lote comecar a subir.
+  await guardarTudo();
+
   const validacao = await fetch('/api/validar', {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ produtos: aprovados }),
@@ -437,10 +570,8 @@ $('btnPublicar').onclick = async () => {
     return;
   }
 
-  const r = await fetch('/api/publicar', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ produtos: aprovados }),
-  });
+  // Sem corpo: a lista do que sobe sai do lote gravado, nao da tela.
+  const r = await fetch('/api/publicar', { method: 'POST' });
   const corpo = await r.json();
 
   if (!r.ok) {

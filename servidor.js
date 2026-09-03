@@ -163,7 +163,12 @@ app.post('/api/analisar', exigirLogin, upload.array('fotos', MAXIMO_FOTOS), asyn
     }
   }
 
-  res.json({ produtos });
+  // Grava antes de responder: da aqui em diante o trabalho existe no banco, e
+  // fechar a aba ou reiniciar o servidor nao joga fora a leitura das fotos.
+  const lote = banco.garantirLote(db, req.loja.id);
+  banco.adicionarItens(db, lote.id, produtos.map(paraLinha));
+
+  res.json({ loteId: lote.id, produtos });
 });
 
 function montarProduto(lojaId, imagem, item, erroIa) {
@@ -181,6 +186,77 @@ function montarProduto(lojaId, imagem, item, erroIa) {
     erroIa: erroIa || null,
   };
 }
+
+/** Ficha da tela -> linha da tabela itens. */
+function paraLinha(p) {
+  return {
+    arquivo: p.id,
+    nome_original: p.arquivo,
+    titulo: p.titulo,
+    descricao: p.descricao,
+    categoria: p.categoria,
+    preco: p.preco || '0',
+    aprovado: p.aprovado ? 1 : 0,
+    erro: p.erroIa || null,
+  };
+}
+
+/** Linha da tabela itens -> ficha da tela. */
+function paraFicha(linha) {
+  return {
+    id: linha.arquivo,
+    arquivo: linha.nome_original || linha.arquivo,
+    previewUrl: `/api/foto/${encodeURIComponent(linha.arquivo)}`,
+    titulo: linha.titulo,
+    descricao: linha.descricao,
+    categoria: linha.categoria,
+    preco: linha.preco,
+    aprovado: !!linha.aprovado,
+    // "precisa revisar" e a ficha que a IA nao conseguiu preencher.
+    revisar: !linha.titulo && linha.estado !== 'enviado',
+    estado: linha.estado === 'pendente' ? null : linha.estado,
+    erroIa: linha.estado === 'pendente' ? linha.erro : null,
+    erroEnvio: linha.estado === 'falhou' ? linha.erro : null,
+  };
+}
+
+// ------------------------------------------------------------ lote em aberto
+
+/** Devolve o trabalho em andamento para a tela se reconstruir sozinha. */
+app.get('/api/lote', exigirLogin, (req, res) => {
+  const lote = banco.loteAberto(db, req.loja.id);
+  if (!lote) return res.json({ lote: null, produtos: [] });
+
+  const linhas = banco.itensDoLote(db, lote.id);
+  res.json({
+    lote: { id: lote.id, estado: lote.estado, criadoEm: lote.criado_em },
+    produtos: linhas.map(paraFicha),
+  });
+});
+
+/** Salva a revisao de uma ficha, campo a campo, enquanto o cliente digita. */
+app.put('/api/lote/item', exigirLogin, (req, res) => {
+  const lote = banco.loteAberto(db, req.loja.id);
+  if (!lote) return res.status(404).json({ erro: 'nenhum lote em aberto' });
+
+  const { id, ...campos } = req.body || {};
+  if (!id) return res.status(400).json({ erro: 'informe o item' });
+
+  const salvo = banco.salvarItem(db, lote.id, String(id), campos);
+  res.json({ ok: salvo });
+});
+
+app.post('/api/lote/descartar', exigirLogin, (req, res) => {
+  if (fila.estaOcupada(req.loja.id)) {
+    return res.status(409).json({ erro: 'ha uma publicacao em andamento' });
+  }
+  banco.descartarLote(db, req.loja.id);
+  res.json({ ok: true });
+});
+
+app.get('/api/historico', exigirLogin, (req, res) => {
+  res.json({ lotes: banco.historico(db, req.loja.id) });
+});
 
 app.get('/api/foto/:arquivo', exigirLogin, (req, res) => {
   let caminho;
@@ -222,9 +298,17 @@ app.post('/api/publicar', exigirLogin, (req, res) => {
     return res.status(400).json({ erro: erro.message });
   }
 
+  const lote = banco.loteAberto(db, loja.id);
+  if (!lote) return res.status(400).json({ erro: 'nenhum lote em aberto' });
+
+  // A fila de publicacao sai do banco, nao do corpo do pedido. Assim o que
+  // sobe e exatamente o que esta gravado, e um item ja publicado nunca vai
+  // duas vezes — nem que a tela mande de novo.
   let produtos;
   try {
-    produtos = prepararProdutos(loja.id, (req.body.produtos || []).filter((p) => p.aprovado));
+    const pendentes = banco.itensDoLote(db, lote.id)
+      .filter((i) => i.aprovado && i.estado !== 'enviado');
+    produtos = prepararProdutos(loja.id, pendentes.map(paraFicha));
   } catch {
     return res.status(400).json({ erro: 'foto invalida no lote' });
   }
@@ -234,21 +318,41 @@ app.post('/api/publicar', exigirLogin, (req, res) => {
   const erros = produtos.flatMap((p, i) => cardapio.validarProduto(p, i));
   if (erros.length) return res.status(400).json({ erro: 'produtos invalidos', erros });
 
+  banco.estadoLote(db, lote.id, 'publicando');
+
   fila.iniciar(loja.id, produtos.length, async (trabalho) => {
-    const { resultados, linkPublico } = await cardapio.publicar({
-      produtos,
-      config: { ...CONFIG_CARDAPIO, ...credenciais },
-      perfil: path.join(PASTA_PERFIS, String(loja.id)),
-      pedirCodigoMfa: trabalho.pedirCodigoMfa,
-      aoProgredir: trabalho.emitir,
-    });
+    // Cada evento da automacao vira uma linha no banco na hora em que
+    // acontece. Se o processo morrer no meio, o que ja subiu esta registrado.
+    const anotar = (evento) => {
+      if (evento.tipo === 'inicio') banco.marcarItem(db, lote.id, evento.id, 'enviando', null);
+      if (evento.tipo === 'ok') banco.marcarItem(db, lote.id, evento.id, 'enviado', null);
+      if (evento.tipo === 'erro') banco.marcarItem(db, lote.id, evento.id, 'falhou', evento.erro);
+      trabalho.emitir(evento);
+    };
 
-    if (linkPublico) {
-      banco.atualizarCredenciais(db, loja.id, { cdpLink: linkPublico });
+    try {
+      const { resultados, linkPublico } = await cardapio.publicar({
+        produtos,
+        config: { ...CONFIG_CARDAPIO, ...credenciais },
+        perfil: path.join(PASTA_PERFIS, String(loja.id)),
+        pedirCodigoMfa: trabalho.pedirCodigoMfa,
+        aoProgredir: anotar,
+      });
+
+      if (linkPublico) {
+        banco.atualizarCredenciais(db, loja.id, { cdpLink: linkPublico });
+      }
+
+      banco.fecharSeTerminou(db, lote.id);
+
+      const ok = resultados.filter((r) => r.ok).length;
+      return { total: resultados.length, ok, falhas: resultados.length - ok, linkPublico };
+    } catch (erro) {
+      // Falhou antes de terminar (login, MFA, rede). O lote volta a ser
+      // rascunho para o dono retentar so o que ficou faltando.
+      banco.estadoLote(db, lote.id, 'rascunho');
+      throw erro;
     }
-
-    const ok = resultados.filter((r) => r.ok).length;
-    return { total: resultados.length, ok, falhas: resultados.length - ok, linkPublico };
   });
 
   res.json({ iniciado: true, total: produtos.length });
@@ -456,6 +560,16 @@ if (totalLojas === 0 && process.env.ADMIN_EMAIL && process.env.ADMIN_SENHA) {
 app.listen(PORTA, () => {
   console.log(`\n  Painel de produtos  ->  http://localhost:${PORTA}`);
   console.log(`  dados em ${PASTA_DADOS}`);
+
+  // A fila de publicacao vive na memoria do processo: se o servidor caiu no
+  // meio de um lote, nao ha o que retomar sozinho. O que da para fazer e
+  // devolver o lote ao estado de rascunho, com o que ja subiu preservado,
+  // para o dono publicar so o que faltou.
+  const recuperados = banco.recuperarLotesInterrompidos(db);
+  if (recuperados) {
+    console.log(`  ${recuperados} publicacao(oes) interrompida(s) devolvida(s) para revisao`);
+  }
+
   const cfgIa = ia.configuracaoAtual(configIa());
   if (cfgIa.temChave) {
     console.log(`  IA: ${cfgIa.rotulo} (${cfgIa.modelo}) — chave vinda do ${cfgIa.origemChave}`);
