@@ -255,14 +255,14 @@ $('btnTestar').onclick = async () => {
     recado = `Falhou: ${d.erro}`;
   } else {
     recado = `Conexão ok: ${d.rotulo} respondeu com o modelo ${d.modelo}.`;
-    if (d.saldo && !d.saldo.semLimite) {
-      const sobra = d.saldo.restante;
-      recado += ` Crédito restante: US$ ${sobra.toFixed(2)}.`;
+    if (d.saldo) {
+      recado += ` Crédito restante: US$ ${d.saldo.restante.toFixed(2)}.`;
       // Chave válida com saldo curto passa no teste e quebra na leitura real.
-      if (sobra < 1) recado += ' Isso não dá para ler um lote de fotos — adicione crédito.';
+      if (d.saldo.restante < 1) recado += ' Isso não dá para ler um lote de fotos — adicione crédito no OpenRouter.';
     }
   }
-  avisar(recado, r.ok && !(d.saldo && !d.saldo.semLimite && d.saldo.restante < 1));
+  const saldoCurto = !!(d.saldo && d.saldo.restante < 1);
+  avisar(recado, r.ok && !saldoCurto);
   botao.disabled = false;
   botao.textContent = 'Testar conexão';
 };
