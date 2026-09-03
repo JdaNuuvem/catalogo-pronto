@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo Pronto — sua loja montada em 48 horas</title>
+<meta name="description" content="Você manda as fotos, a gente monta sua loja e cadastra cada produto. R$ 400 para até 50 produtos e R$ 180 por mês com manutenção e suporte.">
+<meta name="theme-color" content="#1c0507">
+<meta property="og:title" content="Você manda as fotos. A gente monta sua loja.">
+<meta property="og:description" content="Loja pronta em até 48 horas, com cada produto cadastrado por nós. Padaria da Nana já faturou mais de R$ 150 mil com o catálogo no ar.">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --brasa:      #2b0a0d;
+    --brasa-alta: #3d1114;
+    --brasa-funda:#160406;
+    --carmim:     #c2182b;
+    --carmim-alto:#e03a3e;
+    --creme:      #f7ede1;
+    --areia:      #c2a094;
+    --ouro:       #e0ac52;
+
+    --display: "Bricolage Grotesque", "Segoe UI", sans-serif;
+    --corpo:   "Public Sans", system-ui, sans-serif;
+    --margem:  clamp(20px, 5vw, 76px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  /* O fundo mora no html, não só no body: o html é quem pinta a faixa que
+     sobra ao lado da barra de rolagem. Sem isso, aparece branco na borda.
+     O corte horizontal também fica aqui, para o body seguir sendo um bloco
+     comum e o html continuar sendo o elemento que rola. */
+  html {
+    scroll-behavior: smooth;
+    background: var(--brasa-funda);
+    overflow-x: hidden;
+    /* Barra de rolagem — Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: var(--carmim) rgba(43,10,13,.55);
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--brasa-funda);
+    color: var(--creme);
+    font-family: var(--corpo);
+    font-size: clamp(16px, 1.05vw, 18px);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100svh;
+  }
+
+  /* Barra de rolagem — Chrome, Edge, Safari.
+     Trilho vinho translúcido sobre o 3D, polegar carmim com folga nas
+     laterais para parecer uma pastilha correndo dentro da calha. */
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
+  ::-webkit-scrollbar-track {
+    background: rgba(43,10,13,.55);
+    border-left: 1px solid rgba(247,237,225,.1);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(var(--carmim-alto), var(--carmim));
+    border-radius: 99px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(var(--ouro), #c98f37);
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-corner { background: transparent; }
+
+  h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+  h1, h2 { font-weight: 800; line-height: .96; letter-spacing: -.03em; }
+  a { color: inherit; }
+  ::selection { background: var(--carmim-alto); color: #fff; }
+
+  /* ------------------------------------------------------------------
+     Camada 3D. Fica fixa atrás de tudo: a página inteira é uma janela
+     para a mesma cena, e o scroll é o que move a câmera dentro dela.
+     ------------------------------------------------------------------ */
+  #cena {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    z-index: 0; display: block;
+  }
+
+  /* Vinheta por cima do 3D: escurece as bordas e devolve contraste ao
+     texto sem precisar de caixa opaca atrás de cada parágrafo. */
+  .vinheta {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      radial-gradient(120% 90% at 50% 45%, transparent 32%, rgba(22,4,6,.72) 78%, rgba(22,4,6,.94) 100%);
+  }
+
+  /* Grão de filme: tira o aspecto de cor chapada do WebGL. */
+  .grao {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none;
+    opacity: .05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23r)'/%3E%3C/svg%3E");
+  }
+
+  .conteudo { position: relative; z-index: 3; }
+
+  section {
+    min-height: 100svh;
+    display: flex; align-items: center;
+    padding: clamp(80px, 12vh, 140px) var(--margem);
+  }
+  .interno { width: min(1180px, 100%); margin: 0 auto; }
+
+  /* Entrada por scroll. Cada bloco sobe e aparece quando entra em cena. */
+  .revela {
+    opacity: 0; transform: translateY(28px);
+    transition: opacity .9s cubic-bezier(.2,.7,.3,1), transform .9s cubic-bezier(.2,.7,.3,1);
+  }
+  .revela.dentro { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .revela { opacity: 1; transform: none; transition: none; }
+  }
+
+  .etiqueta {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: .74rem; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--ouro);
+    margin-bottom: 26px;
+  }
+  .etiqueta::before {
+    content: ""; width: 34px; height: 2px; background: var(--carmim-alto);
+  }
+
+  /* ---------------------------- topo ---------------------------- */
+  #topo .interno { max-width: 880px; }
+  h1 { font-size: clamp(2.9rem, 8.2vw, 6.4rem); }
+  h1 em {
+    font-style: normal; color: var(--ouro);
+    display: block;
+  }
+  .linha-fina {
+    font-size: clamp(1.05rem, 1.6vw, 1.32rem);
+    color: #efdccb; max-width: 44ch; margin: 30px 0 0;
+  }
+
+  .botoes { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 44px; }
+  .botao {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 17px 30px; border-radius: 999px;
+    font-weight: 700; font-size: 1rem; text-decoration: none;
+    border: 1.5px solid transparent; cursor: pointer;
+    transition: transform .2s ease, background .2s ease, border-color .2s ease;
+  }
+  .botao:hover { transform: translateY(-2px); }
+  .botao.cheio { background: var(--carmim); color: #fff; }
+  .botao.cheio:hover { background: var(--carmim-alto); }
+  .botao.vazio { border-color: rgba(247,237,225,.32); color: var(--creme); }
+  .botao.vazio:hover { border-color: var(--creme); }
+
+  .rolar {
+    position: absolute; bottom: 34px; left: var(--margem);
+    font-size: .74rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--areia); display: flex; align-items: center; gap: 12px;
+  }
+  .rolar span { display: block; width: 1px; height: 42px; background: linear-gradient(var(--areia), transparent); }
+  #topo { position: relative; }
+
+  /* ------------------------- duas colunas ------------------------- */
+  h2 { font-size: clamp(2rem, 4.4vw, 3.5rem); }
+  .subtitulo { color: var(--areia); max-width: 56ch; margin-top: 20px; }
+
+  .duas {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+    gap: 22px; margin-top: 54px;
+  }
+  .cartao {
+    padding: 34px 32px; border-radius: 20px;
+    background: rgba(43,10,13,.62);
+    border: 1px solid rgba(247,237,225,.14);
+    backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+  }
+  .cartao h3 { font-size: 1.24rem; margin-bottom: 20px; }
+  .cartao.frio h3 { color: var(--areia); }
+  .cartao.quente { border-color: rgba(224,172,82,.42); background: rgba(61,17,20,.66); }
+  .cartao.quente h3 { color: var(--ouro); }
+
+  .lista { list-style: none; padding: 0; margin: 0; }
+  .lista li {
+    padding: 11px 0 11px 30px; position: relative;
+    border-top: 1px solid rgba(247,237,225,.1); font-size: .97rem;
+  }
+  .lista li:first-child { border-top: 0; }
+  .lista li::before {
+    position: absolute; left: 0; top: 11px; font-weight: 700;
+  }
+  .frio .lista li { color: #d9c5b8; }
+  .frio .lista li::before { content: "×"; color: var(--areia); font-size: 1.1rem; }
+  .quente .lista li::before { content: "✓"; color: var(--ouro); }
+
+  .fecho {
+    margin-top: 26px; padding-top: 20px;
+    border-top: 1px dashed rgba(247,237,225,.2);
+    font-weight: 700; font-size: 1rem;
+  }
+  .frio .fecho { color: var(--areia); }
+  .quente .fecho { color: var(--creme); }
+
+  /* --------------------------- passos --------------------------- */
+  .passos { display: grid; gap: 2px; margin-top: 54px; }
+  .passo {
+    display: grid; grid-template-columns: 84px 1fr; gap: 26px;
+    padding: 34px 0; border-top: 1px solid rgba(247,237,225,.16);
+    align-items: start;
+  }
+  .passo:last-child { border-bottom: 1px solid rgba(247,237,225,.16); }
+  .numero {
+    font-family: var(--display); font-weight: 800;
+    font-size: clamp(2.4rem, 4vw, 3.4rem); line-height: .8;
+    color: transparent; -webkit-text-stroke: 1.5px var(--carmim-alto);
+  }
+  .passo h3 { font-size: clamp(1.3rem, 2.2vw, 1.75rem); margin-bottom: 12px; }
+  .passo p { margin: 0; color: #e3cec0; max-width: 62ch; }
+
+  /* --------------------------- provas --------------------------- */
+  .provas { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 22px; margin-top: 54px; }
+  .prova {
+    padding: 38px 34px; border-radius: 20px;
+    background: rgba(43,10,13,.66); border: 1px solid rgba(247,237,225,.14);
+    backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+  }
+  .prova .quem {
+    font-size: .74rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ouro); font-weight: 700;
+  }
+  .prova .destaque {
+    font-family: var(--display); font-weight: 800; letter-spacing: -.03em;
+    font-size: clamp(2.6rem, 5.4vw, 4rem); line-height: 1;
+    margin: 16px 0 6px; color: var(--creme);
+  }
+  .prova .destaque small { font-size: .42em; color: var(--areia); font-weight: 700; letter-spacing: 0; }
+  .prova p { color: #e3cec0; margin: 14px 0 0; }
+  .numeros {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 2px; margin-top: 30px; border-top: 1px solid rgba(247,237,225,.14);
+  }
+  .numeros div { padding: 18px 0; border-right: 1px solid rgba(247,237,225,.1); }
+  .numeros div:last-child { border-right: 0; }
+  .numeros b {
+    display: block; font-family: var(--display); font-weight: 800;
+    font-size: 1.85rem; color: var(--ouro); letter-spacing: -.02em;
+  }
+  .numeros span { font-size: .82rem; color: var(--areia); }
+
+  /* --------------------------- preços --------------------------- */
+  .precos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 22px; margin-top: 54px; }
+  .plano {
+    padding: 38px 34px; border-radius: 20px;
+    background: rgba(43,10,13,.66); border: 1px solid rgba(247,237,225,.16);
+    backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+    display: flex; flex-direction: column;
+  }
+  .plano.destacado { border-color: var(--carmim-alto); background: rgba(61,17,20,.72); }
+  .plano .quando { font-size: .74rem; letter-spacing: .18em; text-transform: uppercase; color: var(--areia); font-weight: 700; }
+  .valor {
+    font-family: var(--display); font-weight: 800; letter-spacing: -.03em;
+    font-size: clamp(2.4rem, 4.6vw, 3.4rem); line-height: 1; margin: 16px 0 4px;
+  }
+  .valor small { font-size: .34em; color: var(--areia); font-weight: 700; letter-spacing: 0; }
+  .plano h3 { font-size: 1.08rem; color: var(--ouro); margin-bottom: 22px; }
+  .plano .lista { margin-bottom: 22px; }
+  .plano .lista li::before { content: "✓"; color: var(--carmim-alto); }
+  .plano .nota { margin-top: auto; font-size: .9rem; color: var(--areia); }
+  .sem-taxa {
+    margin-top: 26px; padding: 20px 24px; border-radius: 14px;
+    border: 1px dashed rgba(224,172,82,.4); color: var(--ouro);
+    font-weight: 700; text-align: center;
+  }
+
+  /* ---------------------------- final ---------------------------- */
+  #final .interno { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 46px; align-items: start; }
+  form { display: grid; gap: 14px; }
+  label { font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--areia); font-weight: 700; }
+  input {
+    width: 100%; padding: 15px 18px; border-radius: 12px;
+    background: rgba(22,4,6,.6); color: var(--creme);
+    border: 1px solid rgba(247,237,225,.22); font: inherit;
+  }
+  input:focus { outline: 2px solid var(--carmim-alto); outline-offset: 2px; }
+  form .botao { width: 100%; margin-top: 8px; }
+
+  /* Botão flutuante do WhatsApp: acompanha a leitura inteira. Some quando o
+     bloco final entra em cena, senão fica brigando com o CTA de lá. */
+  .zap-flutuante {
+    position: fixed; right: clamp(16px, 3vw, 30px); bottom: clamp(16px, 3vw, 30px);
+    z-index: 20; display: inline-flex; align-items: center; gap: 11px;
+    padding: 15px 22px 15px 18px; border-radius: 999px;
+    background: #1fa855; color: #fff; text-decoration: none;
+    font-weight: 700; font-size: .96rem;
+    box-shadow: 0 14px 34px rgba(0,0,0,.44);
+    transition: transform .25s ease, opacity .3s ease, visibility .3s ease;
+  }
+  .zap-flutuante:hover { transform: translateY(-3px); background: #23c162; }
+  .zap-flutuante svg { width: 22px; height: 22px; fill: currentColor; flex: none; }
+  .zap-flutuante.oculto { opacity: 0; visibility: hidden; transform: translateY(12px); }
+  @media (max-width: 560px) {
+    .zap-flutuante { padding: 14px; }
+    .zap-flutuante .rotulo { display: none; }
+  }
+
+  /* Chamada de rodapé de seção: o convite repetido, sem virar outdoor. */
+  .chamada {
+    margin-top: 46px; display: flex; flex-wrap: wrap;
+    align-items: center; gap: 18px 22px;
+  }
+  .chamada p { margin: 0; color: var(--areia); max-width: 46ch; }
+  .botao.zap { background: #1fa855; color: #fff; }
+  .botao.zap:hover { background: #23c162; }
+  .botao.zap svg { width: 19px; height: 19px; fill: currentColor; margin-right: 10px; }
+
+  /* Retorno do formulário: ocupa o lugar dos campos quando o envio dá certo. */
+  .recebido {
+    padding: 30px 28px; border-radius: 18px;
+    border: 1px solid rgba(224,172,82,.45); background: rgba(61,17,20,.72);
+  }
+  .recebido h3 { font-size: 1.4rem; color: var(--ouro); margin-bottom: 12px; }
+  .recebido p { margin: 0 0 22px; color: #e3cec0; }
+  .erro-form {
+    margin: 0; padding: 12px 16px; border-radius: 10px; font-size: .92rem;
+    background: rgba(194,24,43,.22); border: 1px solid rgba(224,58,62,.5);
+    color: #ffd9d9;
+  }
+
+  footer {
+    position: relative; z-index: 3;
+    padding: 40px var(--margem) 52px;
+    border-top: 1px solid rgba(247,237,225,.14);
+    background: rgba(22,4,6,.86);
+    color: var(--areia); font-size: .9rem;
+    display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: space-between;
+  }
+  footer b { color: var(--creme); font-family: var(--display); }
+
+  @media (max-width: 640px) {
+    .passo { grid-template-columns: 56px 1fr; gap: 16px; }
+    .rolar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="cena" aria-hidden="true"></canvas>
+<div class="vinheta" aria-hidden="true"></div>
+<div class="grao" aria-hidden="true"></div>
+
+<a class="zap-flutuante" data-zap="flutuante" href="#" aria-label="Falar no WhatsApp">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.17 8.17 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.13-1.05-.39-1.99-1.23-.74-.65-1.23-1.46-1.38-1.71-.14-.24-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05s.88 2.38 1 2.54c.12.16 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.18 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29Z"/></svg><span class="rotulo">Falar no WhatsApp</span>
+</a>
+
+<main class="conteudo">
+
+  <!-- ============================ TOPO ============================ -->
+  <section id="topo">
+    <div class="interno revela">
+      <p class="etiqueta">Catálogo Pronto</p>
+      <h1>Você manda as fotos.<em>A gente monta sua loja.</em></h1>
+      <p class="linha-fina">
+        Cadastramos seus produtos um a um, com foto tratada, nome, descrição e
+        categoria. Em até 48 horas depois de receber as fotos, sua loja está no
+        ar e você recebe o link para divulgar.
+      </p>
+      <div class="botoes">
+        <a class="botao zap" data-zap="topo" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.17 8.17 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.13-1.05-.39-1.99-1.23-.74-.65-1.23-1.46-1.38-1.71-.14-.24-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05s.88 2.38 1 2.54c.12.16 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.18 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>Falar no WhatsApp</a>
+        <a class="botao vazio" href="#precos">Ver quanto custa</a>
+      </div>
+    </div>
+    <p class="rolar"><span></span> Role para ver</p>
+  </section>
+
+  <!-- =========================== PROBLEMA =========================== -->
+  <section id="problema">
+    <div class="interno revela">
+      <p class="etiqueta">O trabalho que trava todo mundo</p>
+      <h2>Montar a loja não é difícil.<br>É demorado e repetitivo.</h2>
+      <p class="subtitulo">
+        E é por isso que a loja fica pela metade, com foto sem descrição e
+        produto sem categoria — ou nem sai do papel.
+      </p>
+
+      <div class="duas">
+        <div class="cartao frio">
+          <h3>Fazendo por conta própria</h3>
+          <ul class="lista">
+            <li>Descobrir sozinho como a plataforma funciona</li>
+            <li>Abrir o formulário e cadastrar produto por produto</li>
+            <li>Pensar num nome e numa descrição para cada um</li>
+            <li>Organizar tudo em categorias que façam sentido</li>
+            <li>Voltar toda vez que mudar preço ou entrar produto novo</li>
+          </ul>
+          <p class="fecho">Semanas até o catálogo ficar de pé — e o tempo sai de onde você deveria estar vendendo.</p>
+        </div>
+
+        <div class="cartao quente">
+          <h3>Deixando com a gente</h3>
+          <ul class="lista">
+            <li>Você manda as fotos dos produtos pelo WhatsApp</li>
+            <li>A gente monta a loja e cadastra tudo, um a um</li>
+            <li>Nome, descrição e categoria escritos por nós</li>
+            <li>Você recebe o link pronto para divulgar</li>
+            <li>Mudou preço ou chegou produto novo? Você avisa e a gente atualiza</li>
+          </ul>
+          <p class="fecho">Pronta em até 48 horas. Você só manda as fotos — o resto do trabalho é nosso.</p>
+        </div>
+      </div>
+      <div class="chamada">
+        <p>Não precisa decidir agora: manda uma foto e a gente devolve a ficha pronta.</p>
+        <a class="botao zap" data-zap="problema" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.17 8.17 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.13-1.05-.39-1.99-1.23-.74-.65-1.23-1.46-1.38-1.71-.14-.24-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05s.88 2.38 1 2.54c.12.16 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.18 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>Mandar uma foto no WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== PASSOS =========================== -->
+  <section id="como">
+    <div class="interno revela">
+      <p class="etiqueta">Do seu lado, só o primeiro passo</p>
+      <h2>Três etapas, e só uma delas é sua.</h2>
+
+      <div class="passos">
+        <div class="passo">
+          <div class="numero">01</div>
+          <div>
+            <h3>Você manda as fotos</h3>
+            <p>
+              Foto de celular serve. Mande pelo WhatsApp, junto com o preço de
+              cada produto. É a única parte que depende de você.
+            </p>
+          </div>
+        </div>
+        <div class="passo">
+          <div class="numero">02</div>
+          <div>
+            <h3>A gente monta a loja em até 48 horas</h3>
+            <p>
+              Tratamos as fotos, criamos a loja, cadastramos cada produto com
+              nome, descrição e categoria, e organizamos as seções. Você não
+              precisa mexer em nada nem aprender plataforma nenhuma.
+            </p>
+          </div>
+        </div>
+        <div class="passo">
+          <div class="numero">03</div>
+          <div>
+            <h3>Você divulga e a gente mantém</h3>
+            <p>
+              Você recebe o link da loja pronto para mandar no grupo e nos
+              stories. Mudou preço, acabou o estoque, chegou produto novo? Você
+              avisa no WhatsApp e a gente atualiza — inclusive a impressora de
+              pedidos, se der problema.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="chamada">
+        <p>A parte que é sua leva cinco minutos. Comece por ela.</p>
+        <a class="botao zap" data-zap="passos" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.17 8.17 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.13-1.05-.39-1.99-1.23-.74-.65-1.23-1.46-1.38-1.71-.14-.24-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05s.88 2.38 1 2.54c.12.16 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.18 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>Mandar as fotos agora</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ PROVA ============================ -->
+  <section id="prova">
+    <div class="interno revela">
+      <p class="etiqueta">Lojas reais, no ar, vendendo</p>
+      <h2>Não é demonstração.<br>É catálogo de cliente faturando.</h2>
+
+      <div class="provas">
+        <div class="prova">
+          <p class="quem">Padaria da Nana</p>
+          <p class="destaque">R$ 150 mil <small>faturados</small></p>
+          <p>
+            Depois que começou a usar o nosso sistema, a Padaria da Nana passou
+            de R$ 150 mil em faturamento, com mais de 300 produtos cadastrados e
+            venda todo dia pelo catálogo.
+          </p>
+          <div class="numeros">
+            <div><b>300+</b><span>produtos cadastrados</span></div>
+            <div><b>Todo dia</b><span>vendendo pelo link</span></div>
+          </div>
+        </div>
+
+        <div class="prova">
+          <p class="quem">BG Produtos da Roça</p>
+          <p class="destaque">136 <small>produtos no ar</small></p>
+          <p>
+            Queijo da Canastra, goiabada, doces mineiros. Catálogo inteiro
+            montado por nós, com foto tratada e ficha escrita produto a produto.
+          </p>
+          <div class="numeros">
+            <div><b>12</b><span>categorias organizadas</span></div>
+            <div><b>100%</b><span>com foto e descrição</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="chamada">
+        <p>Quer ver a loja da BG por dentro? A gente manda o link no WhatsApp.</p>
+        <a class="botao zap" data-zap="prova" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.17 8.17 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.13-1.05-.39-1.99-1.23-.74-.65-1.23-1.46-1.38-1.71-.14-.24-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05s.88 2.38 1 2.54c.12.16 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.18 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>Ver uma loja pronta</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== PREÇOS =========================== -->
+  <section id="precos">
+    <div class="interno revela">
+      <p class="etiqueta">Preço fechado, sem surpresa</p>
+      <h2>Um valor para montar.<br>Um valor por mês para manter.</h2>
+      <p class="subtitulo">
+        O que passa do pacote está escrito aqui, não em letra miúda depois.
+      </p>
+
+      <div class="precos">
+        <div class="plano destacado">
+          <p class="quando">Para começar</p>
+          <p class="valor">R$ 400 <small>uma vez</small></p>
+          <h3>Implementação até 50 produtos</h3>
+          <ul class="lista">
+            <li>Loja criada e configurada</li>
+            <li>Até 50 produtos cadastrados um a um</li>
+            <li>Foto de cada produto tratada por nós</li>
+            <li>Nome, descrição e categoria escritos por nós</li>
+            <li>Pronta em até 48 horas depois das fotos</li>
+          </ul>
+          <p class="nota">Passou de 50 produtos? R$ 3 por produto a mais, já com o tratamento da foto e o cadastro completo.</p>
+          <p style="margin:22px 0 0"><a class="botao zap" data-zap="plano-400" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.17 8.17 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.13-1.05-.39-1.99-1.23-.74-.65-1.23-1.46-1.38-1.71-.14-.24-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05s.88 2.38 1 2.54c.12.16 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.18 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>Começar por R$ 400</a></p>
+        </div>
+
+        <div class="plano">
+          <p class="quando">Todo mês</p>
+          <p class="valor">R$ 180 <small>por mês</small></p>
+          <h3>Manutenção e suporte</h3>
+          <ul class="lista">
+            <li>Até 20 produtos novos cadastrados por mês</li>
+            <li>Alterações de preço e de produto quando precisar</li>
+            <li>Ajustes na loja e nas categorias</li>
+            <li>Suporte no WhatsApp para a loja</li>
+            <li>Suporte também na impressora de pedidos</li>
+          </ul>
+          <p class="nota">Cancela quando quiser. A loja e o catálogo continuam seus.</p>
+          <p style="margin:22px 0 0"><a class="botao vazio" data-zap="plano-180" href="#">Tirar dúvida sobre a mensalidade</a></p>
+        </div>
+      </div>
+
+      <p class="sem-taxa">Sem taxa por venda e sem comissão. O que você fatura é seu.</p>
+      <div class="chamada">
+        <p>Conta quantos produtos você tem e a gente fecha o valor exato antes de começar.</p>
+        <a class="botao zap" data-zap="precos" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.17 8.17 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.13-1.05-.39-1.99-1.23-.74-.65-1.23-1.46-1.38-1.71-.14-.24-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05s.88 2.38 1 2.54c.12.16 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.18 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>Pedir orçamento no WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ FINAL ============================ -->
+  <section id="final">
+    <div class="interno revela">
+      <div>
+        <p class="etiqueta">Teste antes de decidir</p>
+        <h2>Manda uma foto e veja como fica.</h2>
+        <p class="subtitulo">
+          Mostre um produto seu. A gente devolve a ficha pronta — nome,
+          descrição e categoria — sem compromisso, para você ver o resultado
+          antes de decidir qualquer coisa.
+        </p>
+        <div class="botoes">
+          <a class="botao zap" data-zap="final" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.17 8.17 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.53.06-.25-.13-1.05-.39-1.99-1.23-.74-.65-1.23-1.46-1.38-1.71-.14-.24-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.47c-.16 0-.43.06-.65.31-.22.24-.86.84-.86 2.05s.88 2.38 1 2.54c.12.16 1.73 2.64 4.19 3.7.59.25 1.04.4 1.4.52.59.18 1.12.16 1.54.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>Falar no WhatsApp agora</a>
+        </div>
+      </div>
+
+      <form id="contato" novalidate>
+        <div>
+          <label for="nome">Seu nome</label>
+          <input id="nome" name="nome" type="text" autocomplete="name" required>
+        </div>
+        <div>
+          <label for="zap">WhatsApp</label>
+          <input id="zap" name="zap" type="tel" inputmode="tel" autocomplete="tel" required>
+        </div>
+        <div>
+          <label for="loja">Sua loja ou produto</label>
+          <input id="loja" name="loja" type="text">
+        </div>
+        <p class="erro-form" id="erroForm" hidden></p>
+        <button class="botao cheio" type="submit">Enviar contato</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <b>Catálogo Pronto</b>
+  <span>Cadastro automático de produtos para lojas do Cardapio.ai</span>
+</footer>
+
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+  integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+/* =====================================================================
+   Configuração
+   ===================================================================== */
+const WHATSAPP = '5521985395831'; // número que atende, com 55
+
+/* Cada botão abre a conversa já dizendo de onde a pessoa veio. Quem atende
+   sabe se a dúvida é preço, prazo ou prova social sem precisar perguntar. */
+const MENSAGENS = {
+  topo:        'Oi! Vi a página do Catálogo Pronto e quero montar a minha loja.',
+  problema:    'Oi! Quero mandar uma foto de um produto para ver a ficha pronta.',
+  passos:      'Oi! Quero começar: já tenho as fotos dos meus produtos.',
+  prova:       'Oi! Quero ver o link de uma loja que vocês já montaram.',
+  'plano-400': 'Oi! Quero montar minha loja pelo plano de R$ 400 (até 50 produtos).',
+  'plano-180': 'Oi! Tenho uma dúvida sobre a mensalidade de R$ 180.',
+  precos:      'Oi! Quero um orçamento. Tenho ___ produtos para cadastrar.',
+  final:       'Oi! Quero mandar uma foto e ver como fica a ficha do produto.',
+  flutuante:   'Oi! Vi a página do Catálogo Pronto e quero saber mais.',
+};
+
+function linkZap(contexto) {
+  const texto = MENSAGENS[contexto] || MENSAGENS.topo;
+  return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`;
+}
+
+document.querySelectorAll('[data-zap]').forEach((botao) => {
+  botao.href = linkZap(botao.dataset.zap);
+  botao.target = '_blank';
+  botao.rel = 'noopener';
+});
+
+/* O flutuante some quando o bloco final aparece: ali já existe um CTA maior,
+   e dois convites empilhados no mesmo canto só atrapalham. */
+(function esconderFlutuante() {
+  const flutuante = document.querySelector('.zap-flutuante');
+  const final = document.getElementById('final');
+  if (!flutuante || !final || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(([entrada]) => {
+    flutuante.classList.toggle('oculto', entrada.isIntersecting);
+  }, { threshold: .35 }).observe(final);
+})();
+
+/* ---------------------------------------------------------------------
+   Formulário: grava o contato no backend (POST /api/lead) e só depois abre
+   o WhatsApp. A ordem importa — se a pessoa desistir de mandar a mensagem,
+   o contato já está salvo e a gente consegue chamar.
+
+   Se o backend estiver fora do ar, o WhatsApp abre assim mesmo: perder o
+   lead inteiro por causa de um erro de rede é pior que perder o registro.
+   --------------------------------------------------------------------- */
+const formulario = document.getElementById('contato');
+const erroForm = document.getElementById('erroForm');
+
+formulario.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const botao = formulario.querySelector('button[type="submit"]');
+  const d = new FormData(formulario);
+  const dados = {
+    nome: (d.get('nome') || '').trim(),
+    whatsapp: (d.get('zap') || '').trim(),
+    loja: (d.get('loja') || '').trim(),
+  };
+
+  if (!dados.nome || dados.whatsapp.replace(/\D/g, '').length < 10) {
+    erroForm.textContent = 'Preencha o nome e um WhatsApp com DDD.';
+    erroForm.hidden = false;
+    return;
+  }
+
+  erroForm.hidden = true;
+  botao.disabled = true;
+  botao.textContent = 'Enviando…';
+
+  let guardado = false;
+  try {
+    const r = await fetch('/api/lead', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(dados),
+    });
+    guardado = r.ok;
+    if (r.status === 429) {
+      erroForm.textContent = 'Você acabou de enviar um contato. Aguarde um instante.';
+      erroForm.hidden = false;
+      botao.disabled = false;
+      botao.textContent = 'Enviar contato';
+      return;
+    }
+  } catch {
+    guardado = false; // sem rede: segue para o WhatsApp assim mesmo
+  }
+
+  const linhas = [
+    'Oi! Quero montar minha loja.',
+    `Nome: ${dados.nome}`,
+    `WhatsApp: ${dados.whatsapp}`,
+    `Loja/produto: ${dados.loja || '—'}`,
+  ].join('\n');
+  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(linhas)}`, '_blank', 'noopener');
+
+  const aviso = document.createElement('div');
+  aviso.className = 'recebido';
+  aviso.innerHTML = `
+    <h3>${guardado ? 'Contato recebido.' : 'Abrimos o WhatsApp para você.'}</h3>
+    <p>${guardado
+      ? 'A gente chama você no WhatsApp. Se preferir adiantar, a conversa já abriu numa aba nova — é só mandar a foto de um produto.'
+      : 'Não conseguimos guardar seu contato aqui, mas a conversa abriu numa aba nova. Manda a mensagem por lá que a gente responde.'}</p>
+    <a class="botao zap" href="${linkZap('final')}" target="_blank" rel="noopener">Abrir o WhatsApp de novo</a>`;
+  formulario.replaceWith(aviso);
+});
+
+const SEM_MOVIMENTO = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Revelação dos blocos ao entrar na tela. */
+(function revelar() {
+  const alvos = document.querySelectorAll('.revela');
+  if (!('IntersectionObserver' in window) || SEM_MOVIMENTO) {
+    alvos.forEach(a => a.classList.add('dentro'));
+    return;
+  }
+  const obs = new IntersectionObserver((entradas) => {
+    entradas.forEach(en => { if (en.isIntersecting) { en.target.classList.add('dentro'); obs.unobserve(en.target); } });
+  }, { threshold: .18 });
+  alvos.forEach(a => obs.observe(a));
+})();
+
+/* =====================================================================
+   Cena 3D
+
+   A página inteira é uma janela para uma única cena. O scroll não rola
+   um fundo: ele move a câmera e reorganiza as fichas de produto.
+
+   Cada ficha não é a foto solta — é o cartão de catálogo desenhado num
+   canvas (papel creme, foto, nome, peso, selo "cadastrado"). É a promessa
+   da página mostrada em vez de descrita.
+
+   Cinco arranjos, um por seção:
+     0  topo      — nuvem: fotos soltas girando no escuro
+     1  problema  — pilha torta e apertada: o caos de fazer sozinho
+     2  como      — grade alinhada de frente: o catálogo montado
+     3  prova     — corredor: a câmera atravessa as fichas no ar
+     4  preços    — anel lento ao redor, fora do caminho do texto
+   ===================================================================== */
+(function cena3d() {
+  const canvas = document.getElementById('cena');
+  if (!window.THREE || !canvas) return;
+
+  const PRODUTOS = [
+    { arq: 'goiabada',    nome: 'Goiabada Cascão Estação Minas',  peso: '1 kg' },
+    { arq: 'queijo',      nome: 'Queijo Minas Canastra',          peso: 'Peça inteira' },
+    { arq: 'mel',         nome: 'Mel Puro Apiário Santa Rita',    peso: '220 g' },
+    { arq: 'torresmo',    nome: 'Torresmo Caseiro Frito',         peso: '250 g' },
+    { arq: 'pacoca',      nome: 'Paçoca Proteica Amendo Ká',      peso: '14 unidades' },
+    { arq: 'chips-verde', nome: 'Batata Chips Cebola e Salsa',    peso: '150 g' },
+    { arq: 'biscoito',    nome: 'Biscoito Amantela Mantelli',     peso: '150 g' },
+    { arq: 'chips-ouro',  nome: 'Batata Chips Alho na Manteiga',  peso: '180 g' },
+  ];
+
+  const COLUNAS = 8, FILEIRAS = 4;
+  const TOTAL   = COLUNAS * FILEIRAS;   // 32 fichas
+  const L = 620, A = 830;               // resolução da textura da ficha
+  const PROPORCAO = A / L;
+
+  /* ---------------- desenho da ficha ---------------- */
+  function retanguloRedondo(ctx, x, y, l, a, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + l, y, x + l, y + a, r);
+    ctx.arcTo(x + l, y + a, x, y + a, r);
+    ctx.arcTo(x, y + a, x, y, r);
+    ctx.arcTo(x, y, x + l, y, r);
+    ctx.closePath();
+  }
+
+  function desenharFicha(img, produto) {
+    const c = document.createElement('canvas');
+    c.width = L; c.height = A;
+    const ctx = c.getContext('2d');
+
+    // papel
+    ctx.fillStyle = '#f7ede1';
+    retanguloRedondo(ctx, 0, 0, L, A, 34);
+    ctx.fill();
+
+    // foto, recortada em "cover" dentro da janela do cartão
+    const jx = 30, jy = 30, jl = L - 60, ja = 520;
+    ctx.save();
+    retanguloRedondo(ctx, jx, jy, jl, ja, 22);
+    ctx.clip();
+    const escala = Math.max(jl / img.width, ja / img.height);
+    const il = img.width * escala, ia = img.height * escala;
+    ctx.drawImage(img, jx + (jl - il) / 2, jy + (ja - ia) / 2, il, ia);
+    ctx.restore();
+
+    // selo
+    ctx.fillStyle = '#c2182b';
+    retanguloRedondo(ctx, jx, jy + ja - 62, 186, 40, 20);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 20px "Public Sans", system-ui, sans-serif';
+    ctx.fillText('CADASTRADO', jx + 22, jy + ja - 35);
+
+    // nome, quebrado em até duas linhas
+    ctx.fillStyle = '#2b0a0d';
+    ctx.font = '800 40px "Bricolage Grotesque", "Segoe UI", sans-serif';
+    const palavras = produto.nome.split(' ');
+    let linha = '', linhas = [];
+    palavras.forEach(p => {
+      const teste = linha ? linha + ' ' + p : p;
+      if (ctx.measureText(teste).width > L - 76 && linha) { linhas.push(linha); linha = p; }
+      else linha = teste;
+    });
+    linhas.push(linha);
+    linhas.slice(0, 2).forEach((t, i) => ctx.fillText(t, 38, 620 + i * 46));
+
+    // peso
+    ctx.fillStyle = '#8d6b5e';
+    ctx.font = '500 26px "Public Sans", system-ui, sans-serif';
+    ctx.fillText(produto.peso, 38, linhas.length > 1 ? 764 : 718);
+
+    // filete da marca no rodapé
+    ctx.fillStyle = '#e0ac52';
+    ctx.fillRect(38, A - 26, 90, 5);
+
+    return new THREE.CanvasTexture(c);
+  }
+
+  /* ---------------- cena, câmera, render ---------------- */
+  const renderizador = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const cena = new THREE.Scene();
+  cena.fog = new THREE.FogExp2(0x160406, 0.033);
+
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 160);
+  camera.position.set(0, 0, 16);
+
+  /* poeira: dá profundidade ao vazio entre as fichas */
+  const poeiraGeo = new THREE.BufferGeometry();
+  const qtd = 900, pos = new Float32Array(qtd * 3);
+  for (let i = 0; i < qtd; i++) {
+    pos[i * 3]     = (Math.random() - 0.5) * 70;
+    pos[i * 3 + 1] = (Math.random() - 0.5) * 50;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 70;
+  }
+  poeiraGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const poeira = new THREE.Points(poeiraGeo, new THREE.PointsMaterial({
+    color: 0xe0ac52, size: 0.055, transparent: true, opacity: 0.5, depthWrite: false,
+  }));
+  cena.add(poeira);
+
+  /* ---------------- arranjos ---------------- */
+  const LARGURA_FICHA = 2.5;
+  const ALTURA_FICHA  = LARGURA_FICHA * PROPORCAO;
+  const geometria = new THREE.PlaneGeometry(LARGURA_FICHA, ALTURA_FICHA);
+
+  function aleatorio(semente) { // ruído estável por ficha
+    const x = Math.sin(semente * 127.1) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function arranjos(i) {
+    const col = i % COLUNAS, fil = Math.floor(i / COLUNAS);
+    const r1 = aleatorio(i + 1), r2 = aleatorio(i + 31), r3 = aleatorio(i + 71);
+
+    /* Regra de todos os arranjos: nada passa na frente do texto. As fichas
+       vivem sempre atrás do plano da leitura (z bem negativo) ou longe do
+       eixo da câmera. O 3D é cenário, não obstáculo. */
+
+    // 0 — nuvem: casca girando ao fundo, fichas soltas no escuro
+    const ang = (i / TOTAL) * Math.PI * 2 + r1 * 0.6;
+    const raio = 13 + r2 * 7;
+    const nuvem = {
+      p: new THREE.Vector3(Math.cos(ang) * raio, (r3 - 0.5) * 17, -17 + Math.sin(ang) * raio * 0.55),
+      r: new THREE.Euler((r1 - 0.5) * 0.7, (r1 - 0.5) * 0.9, (r3 - 0.5) * 0.5),
+    };
+
+    // 1 — pilha torta: apertada, sobreposta, atravessada
+    const pilha = {
+      p: new THREE.Vector3((r1 - 0.5) * 26, (r2 - 0.5) * 15, -16 + (r3 - 0.5) * 12),
+      r: new THREE.Euler((r2 - 0.5) * 1.5, (r1 - 0.5) * 1.7, (r3 - 0.5) * 1.5),
+    };
+
+    // 2 — grade alinhada: o catálogo montado, tudo de frente
+    const grade = {
+      p: new THREE.Vector3(
+        (col - (COLUNAS - 1) / 2) * (LARGURA_FICHA + 0.6),
+        ((FILEIRAS - 1) / 2 - fil) * (ALTURA_FICHA + 0.6),
+        -18
+      ),
+      r: new THREE.Euler(0, 0, 0),
+    };
+
+    // 3 — corredor: duas paredes viradas para dentro, fugindo ao fundo
+    const lado = col % 2 === 0 ? -1 : 1;
+    const corredor = {
+      p: new THREE.Vector3(lado * 11, ((FILEIRAS - 1) / 2 - fil) * 3.4 + (r1 - 0.5) * 1.6, -6 - i * 1.7),
+      r: new THREE.Euler(0, -lado * 0.9, (r2 - 0.5) * 0.15),
+    };
+
+    /* 4 — duas alas laterais. O centro fica vazio de propósito: é onde
+       moram o texto final e o formulário. */
+    const ala = i % 2 === 0 ? -1 : 1;
+    const anel = {
+      p: new THREE.Vector3(
+        ala * (13 + r1 * 9),
+        (r2 - 0.5) * 16,
+        -10 - r3 * 22
+      ),
+      r: new THREE.Euler((r3 - 0.5) * 0.3, -ala * (0.5 + r1 * 0.5), (r3 - 0.5) * 0.4),
+    };
+
+    return [nuvem, pilha, grade, corredor, anel];
+  }
+
+  const CAMERA_Z = [16, 15, 16, 9, 16];
+  const CAMERA_Y = [0, 0.8, 0, 0, 0];
+
+  /* ---------------- montagem das fichas ---------------- */
+  const fichas = [];
+  const carregadas = new Map();
+
+  PRODUTOS.forEach((produto, indice) => {
+    const img = new Image();
+    img.src = `fotos/${produto.arq}.jpg`;
+    img.onload = () => {
+      const textura = desenharFicha(img, produto);
+      textura.minFilter = THREE.LinearFilter;
+      carregadas.set(indice, textura);
+
+      // cada produto vira 4 fichas espalhadas pelos arranjos
+      for (let k = 0; k < TOTAL / PRODUTOS.length; k++) {
+        const i = k * PRODUTOS.length + indice;
+        const malha = new THREE.Mesh(geometria, new THREE.MeshBasicMaterial({
+          map: textura, transparent: true, opacity: 0, fog: true,
+        }));
+        malha.userData = { arranjos: arranjos(i), fase: aleatorio(i + 11) * Math.PI * 2 };
+        cena.add(malha);
+        fichas.push(malha);
+      }
+    };
+    img.onerror = () => { /* foto faltando: a cena segue sem essa ficha */ };
+  });
+
+  /* ---------------- scroll e ponteiro ---------------- */
+  let progresso = 0, progressoSuave = 0;
+  let apontador = { x: 0, y: 0 }, apontadorSuave = { x: 0, y: 0 };
+
+  function medirScroll() {
+    const rolavel = document.documentElement.scrollHeight - window.innerHeight;
+    progresso = rolavel > 0 ? Math.min(Math.max(window.scrollY / rolavel, 0), 1) : 0;
+  }
+  window.addEventListener('scroll', medirScroll, { passive: true });
+
+  window.addEventListener('pointermove', (e) => {
+    apontador.x = (e.clientX / window.innerWidth - 0.5) * 2;
+    apontador.y = (e.clientY / window.innerHeight - 0.5) * 2;
+  }, { passive: true });
+
+  // Em tela estreita a câmera recua: o mesmo arranjo cabe inteiro no quadro
+  // em vez de virar dois cartões gigantes atravessando o texto.
+  let recuo = 0;
+
+  function redimensionar() {
+    // Medimos o canvas, não a janela: a barra de rolagem ocupa alguns pixels
+    // e usar innerWidth deixaria a cena esticada na horizontal.
+    const l = canvas.clientWidth || window.innerWidth;
+    const a = canvas.clientHeight || window.innerHeight;
+    renderizador.setSize(l, a, false);
+    recuo = l / a < 1 ? 8 : (l / a < 1.4 ? 3.5 : 0);
+    camera.aspect = l / a;
+    camera.updateProjectionMatrix();
+    medirScroll();
+  }
+  window.addEventListener('resize', redimensionar);
+  redimensionar();
+
+  /* ---------------- animação ---------------- */
+  const ESTAGIOS = 5;
+  const suave = (t) => t * t * (3 - 2 * t);
+  const posA = new THREE.Vector3(), posB = new THREE.Vector3();
+
+  function quadro(agora) {
+    const t = agora * 0.001;
+
+    // o scroll persegue devagar: a cena chega um instante depois da página
+    progressoSuave += (progresso - progressoSuave) * (SEM_MOVIMENTO ? 1 : 0.075);
+    apontadorSuave.x += (apontador.x - apontadorSuave.x) * 0.05;
+    apontadorSuave.y += (apontador.y - apontadorSuave.y) * 0.05;
+
+    const p    = progressoSuave * (ESTAGIOS - 1);
+    const de   = Math.min(Math.floor(p), ESTAGIOS - 2);
+    const para = de + 1;
+    const mix  = suave(Math.min(Math.max(p - de, 0), 1));
+
+    fichas.forEach((ficha) => {
+      const arr = ficha.userData.arranjos;
+      posA.copy(arr[de].p); posB.copy(arr[para].p);
+      ficha.position.lerpVectors(posA, posB, mix);
+
+      // respiração: nada fica parado de todo
+      if (!SEM_MOVIMENTO) {
+        ficha.position.y += Math.sin(t * 0.6 + ficha.userData.fase) * 0.13;
+      }
+
+      ficha.rotation.x = arr[de].r.x + (arr[para].r.x - arr[de].r.x) * mix;
+      ficha.rotation.y = arr[de].r.y + (arr[para].r.y - arr[de].r.y) * mix;
+      ficha.rotation.z = arr[de].r.z + (arr[para].r.z - arr[de].r.z) * mix;
+
+      // entrada suave quando a textura acaba de chegar
+      const m = ficha.material;
+      if (m.opacity < 0.82) m.opacity = Math.min(m.opacity + 0.012, 0.82);
+    });
+
+    camera.position.z = CAMERA_Z[de] + (CAMERA_Z[para] - CAMERA_Z[de]) * mix + recuo;
+    camera.position.y = (CAMERA_Y[de] + (CAMERA_Y[para] - CAMERA_Y[de]) * mix) - apontadorSuave.y * 0.9;
+    camera.position.x = apontadorSuave.x * 1.6;
+    camera.lookAt(0, camera.position.y * 0.25, -6);
+
+    if (!SEM_MOVIMENTO) {
+      poeira.rotation.y = t * 0.012;
+      poeira.rotation.x = Math.sin(t * 0.05) * 0.06;
+    }
+
+    renderizador.render(cena, camera);
+    requestAnimationFrame(quadro);
+  }
+  requestAnimationFrame(quadro);
+})();
+</script>
+</body>
+</html>

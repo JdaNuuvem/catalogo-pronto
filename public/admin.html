@@ -57,6 +57,12 @@
   .marca.admin { background:var(--acento-claro); color:var(--acento); }
   a.loja-link { color:var(--acento); font-size:13px; }
 
+  .linha-acoes.colada { margin-top:0; }
+  .rolagem-lateral { overflow-x:auto; margin-top:14px; }
+  .titulo-tabela { font-size:16px; margin:26px 0 12px; }
+  .quando { color:var(--suave); font-size:13px; white-space:nowrap; }
+  .vazio { color:var(--suave); font-style:italic; }
+
   .aviso { padding:11px 15px; border-radius:var(--raio); font-size:13px; margin-bottom:16px;
            background:#fbeceb; border:1px solid #e6b5ae; color:var(--erro); }
   .aviso.bom { background:#eaf5ee; border-color:#cfe3d6; color:var(--ok); }
@@ -165,6 +171,32 @@
     </form>
   </div>
 
+  <div class="cartao">
+    <h2>Contatos da landing</h2>
+    <p class="estado" id="estadoLeads">Carregando…</p>
+    <div class="linha-acoes colada">
+      <button type="button" id="btnAtualizarLeads">Atualizar</button>
+      <button type="button" id="btnCsv">Baixar CSV</button>
+    </div>
+    <div class="rolagem-lateral">
+      <table>
+        <thead>
+          <tr>
+            <th>Quando</th><th>Nome</th><th>WhatsApp</th><th>Loja ou produto</th>
+            <th><span class="apenas-leitor">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody id="corpoLeads"></tbody>
+      </table>
+    </div>
+    <p class="dica">
+      Vem do formulário da página de captação. Guardamos o contato antes de abrir o
+      WhatsApp, então aparece aqui mesmo quem desistiu de mandar a mensagem —
+      esses são justamente os que vale a pena chamar.
+    </p>
+  </div>
+
+  <h2 class="titulo-tabela">Lojas cadastradas</h2>
   <table>
     <thead>
       <tr>
@@ -361,7 +393,78 @@ $('corpo').addEventListener('click', async (e) => {
   }
 });
 
+// ------------------------------------------------------ contatos da landing
+
+let leads = [];
+
+/** "2026-09-03 14:22:07" (UTC do SQLite) vira data local legível. */
+function quando(iso) {
+  const d = new Date(String(iso || '').replace(' ', 'T') + 'Z');
+  if (Number.isNaN(d.getTime())) return iso || '';
+  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit',
+                                     hour: '2-digit', minute: '2-digit' });
+}
+
+/** Monta o link do WhatsApp a partir do número digitado pela pessoa. */
+function zapDe(numero) {
+  const so = String(numero || '').replace(/\D/g, '');
+  if (so.length < 10) return null;
+  return `https://wa.me/${so.length <= 11 ? '55' + so : so}`;
+}
+
+async function carregarLeads() {
+  const r = await fetch('/api/admin/leads');
+  if (!r.ok) { $('estadoLeads').textContent = 'Não foi possível carregar os contatos.'; return; }
+
+  leads = (await r.json()).leads || [];
+
+  const estado = $('estadoLeads');
+  const hoje = new Date().toDateString();
+  const deHoje = leads.filter((l) => new Date(String(l.criado_em).replace(' ', 'T') + 'Z').toDateString() === hoje).length;
+  estado.textContent = leads.length
+    ? `${leads.length} contato${leads.length > 1 ? 's' : ''} recebido${leads.length > 1 ? 's' : ''}` +
+      (deHoje ? ` — ${deHoje} hoje.` : '.')
+    : 'Nenhum contato recebido ainda.';
+  estado.classList.toggle('ativo', deHoje > 0);
+
+  $('corpoLeads').innerHTML = leads.length ? leads.map((l) => {
+    const zap = zapDe(l.whatsapp);
+    return `<tr>
+      <td class="quando">${escapar(quando(l.criado_em))}</td>
+      <td>${escapar(l.nome)}</td>
+      <td>${escapar(l.whatsapp)}</td>
+      <td>${l.loja ? escapar(l.loja) : '<span class="vazio">não informou</span>'}</td>
+      <td class="acoes">${zap
+        ? `<a href="${zap}" target="_blank" rel="noopener"><button type="button">Chamar no WhatsApp</button></a>`
+        : '<span class="vazio">número inválido</span>'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="vazio">Assim que alguém preencher o formulário da landing, aparece aqui.</td></tr>';
+}
+
+$('btnAtualizarLeads').addEventListener('click', carregarLeads);
+
+$('btnCsv').addEventListener('click', () => {
+  if (!leads.length) return avisar('Não há contatos para exportar.');
+
+  // Aspas duplicadas e campo entre aspas: nome com vírgula não quebra a coluna.
+  const celula = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  const linhas = [['Quando', 'Nome', 'WhatsApp', 'Loja ou produto', 'Origem']
+    .map(celula).join(',')];
+  leads.forEach((l) => linhas.push(
+    [quando(l.criado_em), l.nome, l.whatsapp, l.loja || '', l.origem || ''].map(celula).join(',')));
+
+  // BOM na frente: sem ele o Excel abre os acentos errados.
+  const url = URL.createObjectURL(new Blob(['﻿' + linhas.join('\r\n')],
+    { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `contatos-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
 carregarIa();
+carregarLeads();
 carregar();
 </script>
 </body>
