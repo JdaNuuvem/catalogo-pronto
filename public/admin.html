@@ -34,6 +34,16 @@
           border:1px solid var(--linha); border-radius:6px; }
   input:focus { outline:2px solid var(--acento); outline-offset:-1px; }
   .dica { font-size:12px; color:var(--suave); margin-top:10px; }
+  select { width:100%; font:inherit; font-size:14px; padding:8px 10px;
+           border:1px solid var(--linha); border-radius:6px; background:var(--papel); }
+  select:focus { outline:2px solid var(--acento); outline-offset:-1px; }
+  .estado { font-size:13px; color:var(--suave); margin:0 0 16px;
+            padding:11px 14px; border-radius:8px; background:#fbfbfa;
+            border:1px solid var(--linha); }
+  .estado.ativo { background:#f2f8f4; border-color:#cfe3d6; color:var(--ok); }
+  .estado.inativo { background:#fbeceb; border-color:#e6b5ae; color:var(--erro); }
+  .linha-acoes { margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; }
+  .campos-espaco { margin-top:12px; }
 
   table { width:100%; border-collapse:collapse; background:var(--papel);
           border:1px solid var(--linha); border-radius:var(--raio); overflow:hidden; }
@@ -51,6 +61,8 @@
            background:#fbeceb; border:1px solid #e6b5ae; color:var(--erro); }
   .aviso.bom { background:#eaf5ee; border-color:#cfe3d6; color:var(--ok); }
   .escondido { display:none !important; }
+  .apenas-leitor { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+                   overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 </style>
 </head>
 <body>
@@ -62,6 +74,62 @@
 
 <main>
   <div class="aviso escondido" id="aviso"></div>
+
+  <div class="cartao">
+    <h2>Inteligência artificial</h2>
+    <p class="estado" id="estadoIa">Carregando…</p>
+
+    <form id="formIa">
+      <div class="campos">
+        <div>
+          <label for="provedor">Provedor</label>
+          <select id="provedor">
+            <option value="">Automático (usa a chave que existir)</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="openrouter">OpenRouter</option>
+          </select>
+        </div>
+        <div>
+          <label for="modelo">Modelo</label>
+          <input type="text" id="modelo" list="modelosSugeridos" placeholder="em branco = padrão do provedor">
+          <datalist id="modelosSugeridos">
+            <option value="claude-sonnet-5">Anthropic · equilíbrio</option>
+            <option value="claude-opus-5">Anthropic · melhor leitura</option>
+            <option value="google/gemini-2.5-flash">OpenRouter · US$ 0,30/M</option>
+            <option value="google/gemini-2.5-pro">OpenRouter · US$ 1,25/M</option>
+            <option value="openai/gpt-5-mini">OpenRouter · US$ 0,25/M</option>
+            <option value="openai/gpt-4o-mini">OpenRouter · US$ 0,15/M</option>
+            <option value="qwen/qwen3.7-flash">OpenRouter · US$ 0,03/M</option>
+            <option value="anthropic/claude-sonnet-5">OpenRouter · US$ 2,00/M</option>
+          </datalist>
+        </div>
+      </div>
+
+      <div class="campos campos-espaco">
+        <div>
+          <label for="chaveAnthropic">Chave da Anthropic <span id="marcaAnthropic"></span></label>
+          <input type="password" id="chaveAnthropic" placeholder="sk-ant-… (em branco mantém a atual)" autocomplete="off">
+        </div>
+        <div>
+          <label for="chaveOpenrouter">Chave do OpenRouter <span id="marcaOpenrouter"></span></label>
+          <input type="password" id="chaveOpenrouter" placeholder="sk-or-… (em branco mantém a atual)" autocomplete="off">
+        </div>
+      </div>
+
+      <p class="dica">
+        As chaves ficam cifradas no banco e nunca voltam para esta tela — só os
+        quatro últimos caracteres, para você reconhecer qual está lá. O modelo
+        precisa aceitar imagem: o trabalho é ler o rótulo da embalagem.
+      </p>
+
+      <p class="linha-acoes">
+        <button type="submit" class="principal">Salvar configuração</button>
+        <button type="button" id="btnTestar">Testar conexão</button>
+        <button type="button" class="perigo" id="btnLimparAnthropic">Apagar chave Anthropic</button>
+        <button type="button" class="perigo" id="btnLimparOpenrouter">Apagar chave OpenRouter</button>
+      </p>
+    </form>
+  </div>
 
   <div class="cartao">
     <h2>Nova loja</h2>
@@ -100,7 +168,7 @@
   <table>
     <thead>
       <tr>
-        <th>Loja</th><th>Acesso ao painel</th><th>Cardapio.ai</th><th>Link público</th><th></th>
+        <th>Loja</th><th>Acesso ao painel</th><th>Cardapio.ai</th><th>Link público</th><th><span class="apenas-leitor">Ações</span></th>
       </tr>
     </thead>
     <tbody id="corpo"></tbody>
@@ -119,6 +187,90 @@ function avisar(texto, bom) {
   el.classList.remove('escondido');
   setTimeout(() => el.classList.add('escondido'), 5000);
 }
+
+// ------------------------------------------------------ inteligência artificial
+
+async function carregarIa() {
+  const r = await fetch('/api/admin/ia');
+  if (!r.ok) return;
+  const d = await r.json();
+
+  $('provedor').value = d.provedorEscolhido || '';
+  $('modelo').value = d.modeloEscolhido || '';
+
+  d.provedores.forEach((p) => {
+    const marca = $('marca' + p.nome[0].toUpperCase() + p.nome.slice(1));
+    if (!marca) return;
+    marca.innerHTML = p.chave.configurada
+      ? `<span class="marca ok">${escapar(p.chave.final)} · ${escapar(p.chave.origem)}</span>`
+      : '<span class="marca falta">não configurada</span>';
+  });
+
+  const estado = $('estadoIa');
+  const a = d.ativo;
+  if (a.temChave) {
+    estado.className = 'estado ativo';
+    estado.textContent = `Ativo: ${a.rotulo} · modelo ${a.modelo} · chave vinda do ${a.origemChave}`;
+  } else {
+    estado.className = 'estado inativo';
+    estado.textContent = 'Nenhuma chave configurada. A leitura das fotos vai falhar até você salvar uma aqui.';
+  }
+}
+
+$('formIa').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const corpo = {
+    provedor: $('provedor').value || null,
+    modelo: $('modelo').value || null,
+    chaveAnthropic: $('chaveAnthropic').value || null,
+    chaveOpenrouter: $('chaveOpenrouter').value || null,
+  };
+
+  const r = await fetch('/api/admin/ia', {
+    method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo),
+  });
+  const resposta = await r.json();
+
+  if (!r.ok) { avisar(resposta.erro); return; }
+  // Limpa os campos de chave: o valor já foi guardado e não deve ficar na tela.
+  $('chaveAnthropic').value = '';
+  $('chaveOpenrouter').value = '';
+  avisar('Configuração de IA salva.', true);
+  carregarIa();
+});
+
+$('btnTestar').onclick = async () => {
+  const botao = $('btnTestar');
+  botao.disabled = true;
+  botao.textContent = 'Testando…';
+
+  const r = await fetch('/api/admin/ia/testar', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ provedor: $('provedor').value || null, modelo: $('modelo').value || null }),
+  });
+  const d = await r.json();
+
+  avisar(r.ok ? `Conexão ok: ${d.rotulo} respondeu com o modelo ${d.modelo}.` : `Falhou: ${d.erro}`, r.ok);
+  botao.disabled = false;
+  botao.textContent = 'Testar conexão';
+};
+
+async function apagarChave(qual, rotulo) {
+  if (!confirm(`Apagar a chave do ${rotulo} guardada no painel?`)) return;
+  const corpo = { provedor: $('provedor').value || null, modelo: $('modelo').value || null };
+  corpo[qual] = true;
+
+  const r = await fetch('/api/admin/ia', {
+    method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo),
+  });
+  avisar(r.ok ? `Chave do ${rotulo} apagada.` : (await r.json()).erro, r.ok);
+  carregarIa();
+}
+
+$('btnLimparAnthropic').onclick = () => apagarChave('limparAnthropic', 'Anthropic');
+$('btnLimparOpenrouter').onclick = () => apagarChave('limparOpenrouter', 'OpenRouter');
+
+// ------------------------------------------------------------------- lojas
 
 async function carregar() {
   const r = await fetch('/api/admin/lojas');
@@ -197,6 +349,7 @@ $('corpo').addEventListener('click', async (e) => {
   }
 });
 
+carregarIa();
 carregar();
 </script>
 </body>

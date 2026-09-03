@@ -69,6 +69,36 @@ const upload = multer({
   },
 });
 
+// ------------------------------------------------------------ configuracao IA
+
+const CHAVES_IA = { anthropic: 'ia_chave_anthropic', openrouter: 'ia_chave_openrouter' };
+
+/** Monta a configuracao de IA a partir do banco; o ambiente vale como reserva. */
+function configIa() {
+  return {
+    provedor: banco.lerConfig(db, 'ia_provedor'),
+    modelo: banco.lerConfig(db, 'ia_modelo'),
+    chaves: {
+      anthropic: banco.lerConfig(db, CHAVES_IA.anthropic),
+      openrouter: banco.lerConfig(db, CHAVES_IA.openrouter),
+    },
+  };
+}
+
+/** Nunca devolve a chave: so os ultimos caracteres, para o admin reconhecer qual e. */
+function resumoChave(nome) {
+  const doPainel = banco.lerConfig(db, CHAVES_IA[nome]);
+  const doAmbiente = process.env[ia.PROVEDORES[nome].variavelChave];
+  const valor = doPainel || doAmbiente;
+
+  return {
+    configurada: !!valor,
+    origem: doPainel ? 'painel' : (doAmbiente ? 'ambiente' : null),
+    final: valor ? `…${valor.slice(-4)}` : null,
+    atualizadaEm: doPainel ? banco.quandoAtualizado(db, CHAVES_IA[nome]) : null,
+  };
+}
+
 function lerCategorias() {
   const caminho = path.join(RAIZ, 'categorias.txt');
   if (!fs.existsSync(caminho)) return [];
@@ -101,7 +131,7 @@ app.post('/api/sair', (req, res) => {
 
 app.get('/api/eu', exigirLogin, (req, res) => {
   const trabalho = fila.obter(req.loja.id);
-  const ia_ = ia.configuracaoAtual();
+  const ia_ = ia.configuracaoAtual(configIa());
   res.json({
     nome: req.loja.nome,
     admin: !!req.loja.admin,
@@ -126,8 +156,7 @@ app.post('/api/analisar', exigirLogin, upload.array('fotos', MAXIMO_FOTOS), asyn
   for (let i = 0; i < imagens.length; i += LOTE_IA) {
     const lote = imagens.slice(i, i + LOTE_IA);
     try {
-      // O provedor e o modelo saem do ambiente (IA_PROVEDOR / IA_MODELO).
-      const itens = await ia.descreverImagens(lote, categorias);
+      const itens = await ia.descreverImagens(lote, categorias, configIa());
       itens.forEach((item, j) => produtos.push(montarProduto(req.loja.id, lote[j], item)));
     } catch (erro) {
       lote.forEach((imagem) => produtos.push(montarProduto(req.loja.id, imagem, null, erro.message)));
@@ -291,6 +320,59 @@ app.get('/api/admin/leads', exigirLogin, sessao.exigirAdmin, (req, res) => {
   res.json({ leads: db.prepare('SELECT * FROM leads ORDER BY criado_em DESC LIMIT 500').all() });
 });
 
+// ----------------------------------------------------------- admin: IA
+
+app.get('/api/admin/ia', exigirLogin, sessao.exigirAdmin, (req, res) => {
+  res.json({
+    ativo: ia.configuracaoAtual(configIa()),
+    provedorEscolhido: banco.lerConfig(db, 'ia_provedor'),
+    modeloEscolhido: banco.lerConfig(db, 'ia_modelo'),
+    provedores: Object.entries(ia.PROVEDORES).map(([nome, p]) => ({
+      nome,
+      rotulo: p.rotulo,
+      modeloPadrao: p.modeloPadrao,
+      chave: resumoChave(nome),
+    })),
+  });
+});
+
+app.put('/api/admin/ia', exigirLogin, sessao.exigirAdmin, (req, res) => {
+  const { provedor, modelo, chaveAnthropic, chaveOpenrouter, limparAnthropic, limparOpenrouter } = req.body || {};
+
+  if (provedor && !ia.PROVEDORES[provedor]) {
+    return res.status(400).json({ erro: 'provedor invalido' });
+  }
+
+  try {
+    banco.gravarConfig(db, 'ia_provedor', provedor || null);
+    banco.gravarConfig(db, 'ia_modelo', (modelo || '').trim() || null);
+
+    // Campo em branco mantem a chave que ja existe; so o pedido explicito apaga.
+    if (limparAnthropic) banco.gravarConfig(db, CHAVES_IA.anthropic, null);
+    else if (chaveAnthropic) banco.gravarConfig(db, CHAVES_IA.anthropic, chaveAnthropic.trim(), { cifrado: true });
+
+    if (limparOpenrouter) banco.gravarConfig(db, CHAVES_IA.openrouter, null);
+    else if (chaveOpenrouter) banco.gravarConfig(db, CHAVES_IA.openrouter, chaveOpenrouter.trim(), { cifrado: true });
+
+    res.json({ ok: true, ativo: ia.configuracaoAtual(configIa()) });
+  } catch (erro) {
+    res.status(400).json({ erro: erro.message });
+  }
+});
+
+/** Gasta alguns tokens de propósito: confirma a chave antes do cliente subir fotos. */
+app.post('/api/admin/ia/testar', exigirLogin, sessao.exigirAdmin, async (req, res) => {
+  const cfg = configIa();
+  if (req.body && req.body.provedor) cfg.provedor = req.body.provedor;
+  if (req.body && req.body.modelo) cfg.modelo = req.body.modelo;
+
+  try {
+    res.json({ ok: true, ...(await ia.testarConexao(cfg)) });
+  } catch (erro) {
+    res.status(400).json({ ok: false, erro: erro.message });
+  }
+});
+
 // --------------------------------------------------------------------- admin
 
 app.get('/api/admin/lojas', exigirLogin, sessao.exigirAdmin, (req, res) => {
@@ -374,11 +456,11 @@ if (totalLojas === 0 && process.env.ADMIN_EMAIL && process.env.ADMIN_SENHA) {
 app.listen(PORTA, () => {
   console.log(`\n  Painel de produtos  ->  http://localhost:${PORTA}`);
   console.log(`  dados em ${PASTA_DADOS}`);
-  const cfgIa = ia.configuracaoAtual();
+  const cfgIa = ia.configuracaoAtual(configIa());
   if (cfgIa.temChave) {
-    console.log(`  IA: ${cfgIa.rotulo} (${cfgIa.modelo})`);
+    console.log(`  IA: ${cfgIa.rotulo} (${cfgIa.modelo}) — chave vinda do ${cfgIa.origemChave}`);
   } else {
-    console.log('  aviso: sem chave de IA (ANTHROPIC_API_KEY ou OPENROUTER_API_KEY), a leitura das fotos vai falhar');
+    console.log('  aviso: sem chave de IA. Configure em /admin.html, aba Inteligencia artificial');
   }
   if (db.prepare('SELECT COUNT(*) AS n FROM lojas').get().n === 0) {
     console.log('  aviso: nenhuma conta cadastrada. Defina ADMIN_EMAIL e ADMIN_SENHA e reinicie.');

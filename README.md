@@ -151,15 +151,28 @@ mostrar('Contato recebido. A gente chama você no WhatsApp.', true);
 
 ## Escolher a IA que lê as fotos
 
-Dois provedores atendidos. Defina **uma** das chaves:
+**Pela tela**, que é o caminho normal: entre como administrador, clique em
+**Lojas** e use o bloco *Inteligência artificial*. Ali você escolhe o provedor,
+o modelo e cola as chaves. Vale na hora, sem reiniciar nada.
+
+As chaves ficam **cifradas no banco** com a mesma `CHAVE_CRIPTO` das senhas do
+Cardapio.ai, e nunca voltam para a tela — só os quatro últimos caracteres, para
+você reconhecer qual está lá. Campo em branco mantém a chave atual; para remover
+existe um botão próprio.
+
+O botão **Testar conexão** faz uma chamada mínima (uma imagem de 1 pixel, 16
+tokens de resposta) e mostra o erro exato da API se algo estiver errado. Vale
+usar antes de o cliente subir sessenta fotos e descobrir que a chave expirou.
+
+**Por variável de ambiente** continua funcionando, como reserva:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...        # ou
 OPENROUTER_API_KEY=sk-or-...
 ```
 
-Com as duas definidas, `IA_PROVEDOR` decide (`anthropic` ou `openrouter`).
-Trocar de provedor é só mudar variável e reiniciar — nenhum código muda.
+O que está no painel tem prioridade; o ambiente entra quando o painel não tem
+nada. O bloco mostra de onde veio a chave em uso (`painel` ou `ambiente`).
 
 | Provedor | Modelo padrão | Onde pegar a chave |
 |---|---|---|
