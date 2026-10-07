@@ -109,6 +109,8 @@ $('sair').onclick = async () => { try { await api('/api/sair','POST'); location.
 (async () => {
   try {
     usuario = await api('/api/eu');
+    document.body.dataset.ajudaAdmin=String(!!usuario.admin);
+    document.dispatchEvent(new CustomEvent('catalogo-perfil'));
     if (!usuario.admin && usuario.papel !== 'atendente') { location.replace('/'); return; }
     document.body.classList.toggle('admin',usuario.admin);
     $('identidade').textContent = `${usuario.nome} · ${usuario.admin ? 'Visão de toda a operação' : 'Sua carteira de clientes'}`;

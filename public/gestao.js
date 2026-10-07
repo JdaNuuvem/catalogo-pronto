@@ -1,5 +1,6 @@
 import {financeiro,cobrancas,repasses,configuracoes} from './gestao-financeiro.js';
 import {clientes,implantacoes,tarefas,ficha} from './gestao-operacional.js';
+import {guia,explicacaoIndicador} from './gestao-ajuda.js';
 export const $=id=>document.getElementById(id);
 export const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const brl=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((v||0)/100);
@@ -14,7 +15,7 @@ export async function api(url,method='GET',body){
   const d=await r.json();if(!r.ok)throw new Error(d.erro||'Não foi possível concluir.');return d;
 }
 export function tabela(cabecalhos,linhas){return `<div class="tabela"><table><thead><tr>${cabecalhos.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${linhas.length?linhas.join(''):`<tr><td colspan="${cabecalhos.length}" class="vazio">Nenhum registro neste momento.</td></tr>`}</tbody></table></div>`;}
-export function indicadores(itens){return `<div class="indicadores">${itens.map(([nome,valor,dica])=>`<article><span>${esc(nome)}</span><strong>${esc(valor)}</strong>${dica?`<small>${esc(dica)}</small>`:''}</article>`).join('')}</div>`;}
+export function indicadores(itens){return `<div class="indicadores">${itens.map(([nome,valor,dica])=>{const [explicacao,calculo]=explicacaoIndicador(nome);return `<article><span>${esc(nome)}</span><strong>${esc(valor)}</strong>${dica?`<small>${esc(dica)}</small>`:''}${explicacao?`<p class="indicador-descricao">${esc(explicacao)}</p>`:''}${calculo?`<details class="indicador-ajuda"><summary>Entenda o cálculo</summary><p>${esc(calculo)}</p></details>`:''}</article>`;}).join('')}</div>`;}
 export function titulo(nome,descricao,acoes=''){return `<div class="titulo"><div><h2>${esc(nome)}</h2><p class="suave">${esc(descricao)}</p></div><div class="acoes-linha">${acoes}</div></div>`;}
 export const opcoesClientes=()=>dados.clientes.filter(c=>c.ativo).map(c=>[c.id,c.nome]);
 export function campo(nome,label,tipo='text',valor='',extra={}){return {nome,label,tipo,valor,...extra};}
@@ -51,10 +52,13 @@ async function inicio(){
 }
 export async function renderizar(){
   const aba=location.hash.slice(1)||'inicio';document.querySelectorAll('aside a').forEach(a=>a.classList.toggle('ativo',a.hash==='#'+aba));
-  if(aba.startsWith('cliente-'))return ficha(Number(aba.slice(8)));
+  const fichaAberta=aba.startsWith('cliente-');
   const telas={inicio,clientes,implantacoes,cobrancas,financeiro,repasses,tarefas,configuracoes};
   if(!usuario.admin&&['financeiro','configuracoes'].includes(aba)){location.hash='inicio';return;}
-  await (telas[aba]||inicio)();
+  $('periodo').hidden=!['inicio','financeiro'].includes(aba);
+  $('ajudaPeriodo').hidden=$('periodo').hidden;
+  await (fichaAberta?ficha(Number(aba.slice(8))):(telas[aba]||inicio)());
+  if((location.hash.slice(1)||'inicio')===aba&&!$('conteudo').querySelector('[data-guia]'))$('conteudo').insertAdjacentHTML('afterbegin',guia(fichaAberta?'ficha':aba,usuario.admin));
 }
 export async function carregar(){dados=await api(`/api/gestao?inicio=${$('inicio').value}&fim=${$('fim').value}`);await renderizar();}
 $('cancelar').onclick=()=>$('formDialog').close();

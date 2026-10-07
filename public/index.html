@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel de Produtos</title>
+<link rel="stylesheet" href="/ajuda.css">
+<script type="module" src="/ajuda-paginas.js"></script>
 <style>
   :root {
     --fundo:#f6f5f2; --papel:#fff; --tinta:#23201c; --suave:#6d675e; --linha:#e2ddd4;
@@ -120,7 +122,7 @@
   .escondido { display:none !important; }
 </style>
 </head>
-<body>
+<body data-ajuda-tela="produtos">
 
 <!-- ============================================================== login -->
 <div class="tela-login" id="telaLogin">
@@ -257,6 +259,9 @@ async function iniciarApp() {
   if (!r.ok) { $('telaLogin').classList.remove('escondido'); $('app').classList.add('escondido'); return; }
 
   const eu = await r.json();
+  document.body.dataset.ajudaAdmin=String(!!eu.admin);
+  document.body.dataset.ajudaPapel=eu.papel;
+  document.dispatchEvent(new CustomEvent('catalogo-perfil'));
   if (!lojaSelecionada && (eu.papel === 'atendente' || (eu.admin && !new URLSearchParams(location.search).has('produtos')))) {
     location.replace('/gestao.html');
     return;
