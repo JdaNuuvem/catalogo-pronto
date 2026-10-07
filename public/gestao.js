@@ -1,6 +1,7 @@
 import {financeiro,cobrancas,repasses,configuracoes} from './gestao-financeiro.js';
 import {clientes,implantacoes,tarefas,ficha} from './gestao-operacional.js';
 import {guia,explicacaoIndicador} from './gestao-ajuda.js';
+import {onboarding} from './gestao-onboarding.js';
 export const $=id=>document.getElementById(id);
 export const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const brl=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((v||0)/100);
@@ -42,7 +43,7 @@ export function conectar(acoes){for(const [selector,fn] of Object.entries(acoes)
 });}
 async function inicio(){
   const hoje=dados.hoje,pendentes=dados.tarefas.filter(t=>t.estado!=='concluida'),vencidas=dados.cobrancas.filter(c=>c.pendente&&c.vencimento<=hoje);
-  $('conteudo').innerHTML=titulo('Seu dia na operação','Pendências da equipe, cobranças e entregas.')+indicadores([
+  $('conteudo').innerHTML=titulo('Seu dia na operação','Pendências da equipe, cobranças e entregas.','<a href="#lojas-novas">Montar uma loja nova passo a passo</a>')+indicadores([
     ['Clientes ativos',dados.clientes.filter(c=>c.ativo).length],['Tarefas em aberto',pendentes.length],['Cobranças a conferir',vencidas.length],
     ['Tarefas atrasadas',pendentes.filter(t=>t.prazo&&t.prazo<hoje).length],
     [usuario.admin?'Recebido no período':'Seu repasse disponível',brl(usuario.admin?dados.resumo.recebido:dados.resumo.disponivel)]
@@ -53,7 +54,7 @@ async function inicio(){
 export async function renderizar(){
   const aba=location.hash.slice(1)||'inicio';document.querySelectorAll('aside a').forEach(a=>a.classList.toggle('ativo',a.hash==='#'+aba));
   const fichaAberta=aba.startsWith('cliente-');
-  const telas={inicio,clientes,implantacoes,cobrancas,financeiro,repasses,tarefas,configuracoes};
+  const telas={inicio,clientes,implantacoes,cobrancas,financeiro,repasses,tarefas,configuracoes,'lojas-novas':onboarding};
   if(!usuario.admin&&['financeiro','configuracoes'].includes(aba)){location.hash='inicio';return;}
   $('periodo').hidden=!['inicio','financeiro'].includes(aba);
   $('ajudaPeriodo').hidden=$('periodo').hidden;

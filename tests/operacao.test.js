@@ -160,6 +160,29 @@ test('gestao isola fichas, produtos, tarefas e movimentos financeiros por permis
   assert.equal((await chamar('/api/gestao/backups',{cookie:cookieA})).status,403);
 });
 
+test('onboarding salva por loja, respeita responsabilidades e nao altera recebimentos ou publicacao',async()=>{
+  const url='/api/gestao/clientes/'+clienteA+'/onboarding';
+  assert.equal((await chamar(url)).status,401);
+  assert.equal((await chamar(url,{cookie:cookieA})).status,200);
+  assert.equal((await chamar(url,{cookie:cookieB})).status,400);
+  const cliente=await login('lojaa@teste.local');assert.equal((await chamar(url,{cookie:cliente})).status,403);
+  const antes=(await chamar('/api/gestao',{cookie:cookieAdmin})).dados;
+  const primeiro=await chamar(url,{cookie:cookieA,method:'PUT',body:{passo:'materiais',concluido:true}});assert.equal(primeiro.status,200);
+  assert.equal(primeiro.dados.etapas.find(e=>e.passo==='materiais').concluido,1);
+  assert.equal((await chamar(url,{cookie:cookieB,method:'PUT',body:{passo:'materiais',concluido:true}})).status,400);
+  assert.equal((await chamar(url,{cookie:cookieA,method:'PUT',body:{passo:'publicacao',concluido:true}})).status,403);
+  assert.equal((await chamar(url,{cookie:cookieAdmin,method:'PUT',body:{passo:'publicacao',concluido:true}})).status,200);
+  assert.equal((await chamar(url,{cookie:cookieAdmin,method:'PUT',body:{passo:'desconhecido',concluido:true}})).status,400);
+  assert.equal((await chamar(url,{cookie:cookieAdmin,method:'PUT',body:{passo:'cadastro',concluido:'sim'}})).status,400);
+  const salvo=await chamar(url,{cookie:cookieAdmin});assert.equal(salvo.dados.etapas.filter(e=>e.concluido).length,2);
+  const retry=await chamar(url,{cookie:cookieA,method:'PUT',body:{passo:'materiais',concluido:true}});assert.deepEqual(retry.dados.etapas,salvo.dados.etapas);
+  await chamar(url,{cookie:cookieA,method:'PUT',body:{passo:'materiais',concluido:false}});
+  assert.equal((await chamar(url,{cookie:cookieA})).dados.etapas.find(e=>e.passo==='materiais').concluido,0);
+  const depois=(await chamar('/api/gestao',{cookie:cookieAdmin})).dados;
+  assert.deepEqual(depois.movimentos,antes.movimentos);assert.deepEqual(depois.cobrancas,antes.cobrancas);
+  assert.equal((await chamar('/api/lojas/'+clienteA+'/lote',{cookie:cookieAdmin})).dados.lote,null);
+});
+
 test('desativacao e troca de senha revogam sessoes existentes',async()=>{
   const r=await chamar('/api/gestao/atendentes/'+atendenteA,{cookie:cookieAdmin,method:'PUT',body:{ativo:false}});assert.equal(r.status,200);
   assert.equal((await chamar('/api/gestao',{cookie:cookieA})).status,401);
