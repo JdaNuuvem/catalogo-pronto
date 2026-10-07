@@ -4,7 +4,7 @@ const etapas=[
     objetivo:'Deixe registrado quem é o cliente, qual loja será montada e quem vai fazer o atendimento.',
     fazer:['Peça nome da loja, nome do responsável, WhatsApp, quantidade de produtos e referências da identidade visual.','O administrador usa Clientes e equipe para cadastrar a loja e vincular o atendente.','Depois do cadastro, selecione essa loja no campo acima para salvar o progresso deste roteiro.'],
     conferir:['Loja cadastrada na carteira.','Contato e atendente responsável conferidos.'],
-    acoes:[['Cadastrar uma nova loja','cadastro'],['Abrir a ficha da loja','ficha']]},
+    acoes:[['Cadastrar uma nova loja','cadastro'],['Conferir cadastro desta loja','cadastro-ficha']]},
   {id:'acordo',titulo:'Confirmar o serviço e a cobrança',quem:'Atendente coleta; administrador registra',equipe:true,
     objetivo:'Combine os valores, a quantidade de produtos, o prazo e o que o cliente vai receber.',
     fazer:['A implantação padrão custa R$ 400 com 25 produtos incluídos. Cada produto acima de 25 custa R$ 3.','Combine o suporte mensal e o valor do plano Cardapio.ai. Eles devem ficar separados do serviço de implantação.','Na ficha da loja, o administrador cria a cobrança da implantação. Quando o cliente pagar, registra o valor em Receber, na tela Cobranças.'],
@@ -57,8 +57,8 @@ const etapas=[
     acoes:[['Conferir custos e recebimentos','cobrancas'],['Conferir a parte do atendente','repasses']]}
 ];
 let lojaId=0,indice=0,registros=[],salvando=false,carregando=false,requisicao=0;
-const destinos={cadastro:'/operacao.html',cobrancas:'#cobrancas',tarefas:'#tarefas',implantacoes:'#implantacoes',configuracoes:'#configuracoes',financeiro:'#financeiro',repasses:'#repasses',acessos:'/admin.html',proton:'https://mail.proton.me/',cardapio:'https://cardapio.ai/','painel-cardapio':'https://cardapio.ai/painelweb/listar'};
-function destino(tipo,loja){if(tipo==='ficha')return `#cliente-${lojaId}`;if(tipo==='produtos')return `/?produtos=1&loja=${lojaId}`;if(tipo==='catalogo')return loja.cdp_link;return destinos[tipo];}
+const destinos={cadastro:'/operacao.html?novoCliente=1',cobrancas:'#cobrancas',tarefas:'#tarefas',implantacoes:'#implantacoes',configuracoes:'#configuracoes',financeiro:'#financeiro',repasses:'#repasses',acessos:'/admin.html',proton:'https://mail.proton.me/',cardapio:'https://cardapio.ai/','painel-cardapio':'https://cardapio.ai/painelweb/listar'};
+function destino(tipo,loja){if(tipo==='cadastro-ficha')return `/gestao.html?loja=${lojaId}&orientacao=cadastro#cliente-${lojaId}`;if(tipo==='ficha')return `#cliente-${lojaId}`;if(tipo==='produtos')return `/?produtos=1&loja=${lojaId}`;if(tipo==='catalogo')return loja.cdp_link;return destinos[tipo];}
 function permitido(tipo,loja){
   if(!usuario.admin&&['cadastro','acessos','configuracoes','financeiro'].includes(tipo))return false;
   if(tipo==='cadastro')return !loja;

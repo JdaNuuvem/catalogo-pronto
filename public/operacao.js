@@ -116,5 +116,11 @@ $('sair').onclick = async () => { try { await api('/api/sair','POST'); location.
     $('identidade').textContent = `${usuario.nome} · ${usuario.admin ? 'Visão de toda a operação' : 'Sua carteira de clientes'}`;
     if (!usuario.admin) { $('tituloCarteira').textContent = 'Meus clientes'; $('rotuloParte').textContent = 'Sua parte na implantação'; }
     await carregar();
+    const parametros=new URLSearchParams(location.search);
+    if(usuario.admin&&parametros.has('novoCliente'))abrirCliente(null);
+    else if(usuario.admin&&parametros.has('editarLoja')){
+      const cliente=carteira.find(c=>c.id===Number(parametros.get('editarLoja')));
+      if(cliente)abrirCliente(cliente);else avisar('A loja não foi encontrada. Abra sua ficha novamente.');
+    }
   } catch (erro) { avisar(erro.message); }
 })();

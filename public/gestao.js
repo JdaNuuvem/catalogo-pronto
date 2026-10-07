@@ -66,9 +66,10 @@ $('cancelar').onclick=()=>$('formDialog').close();
 $('atualizar').onclick=async()=>{try{await carregar();}catch(e){aviso(e.message);}};
 $('senha').onclick=()=>dialogo('Alterar minha senha',[campo('atual','Senha atual','password'),campo('nova','Nova senha','password')],async b=>{await api('/api/gestao/senha','PUT',b);location.replace('/');},'Após salvar, entre novamente com a nova senha.');
 $('sair').onclick=async()=>{try{await api('/api/sair','POST');location.replace('/');}catch(e){aviso(e.message);}};
-window.addEventListener('hashchange',()=>renderizar().catch(e=>aviso(e.message)));
+window.addEventListener('hashchange',()=>renderizar().then(()=>window.scrollTo({top:0,left:0,behavior:'auto'})).catch(e=>aviso(e.message)));
 (async()=>{try{
   usuario=await api('/api/eu');if(!usuario.admin&&usuario.papel!=='atendente'){location.replace('/');return;}
   document.body.classList.toggle('admin',usuario.admin);$('identidade').textContent=`${usuario.nome} · ${usuario.admin?'Toda a operação':'Sua carteira'}`;
   dados=await api('/api/gestao');$('inicio').value=dados.inicio;$('fim').value=dados.fim;await renderizar();
+  if(new URLSearchParams(location.search).get('orientacao')==='cadastro')window.scrollTo({top:0,left:0,behavior:'auto'});
 }catch(e){aviso(e.message);}})();
