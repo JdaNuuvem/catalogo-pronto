@@ -135,3 +135,38 @@ test('transferencia atualiza acesso imediatamente e desvinculacao zera previsao'
   assert.equal(cliente.parte_atendente_centavos,0); assert.equal(cliente.suporte_atendente_centavos,0); assert.equal(cliente.vencimento,null);
   const sair = await chamar('/api/sair',{cookie:cookieA,method:'POST'}); assert.equal(sair.status,200);
 });
+
+test('gestao isola fichas, produtos, tarefas e movimentos financeiros por permissao',async()=>{
+  await chamar('/api/operacao/clientes/'+clienteA,{cookie:cookieAdmin,method:'PUT',body:{atendente_id:atendenteA}});
+  assert.equal((await chamar('/api/gestao',{cookie:cookieA})).status,200);
+  assert.equal((await chamar('/api/gestao/clientes/'+clienteA,{cookie:cookieB})).status,400);
+  assert.equal((await chamar('/api/lojas/'+clienteA+'/lote',{cookie:cookieA})).status,200);
+  assert.equal((await chamar('/api/lojas/'+clienteA+'/lote',{cookie:cookieB})).status,403);
+  assert.equal((await chamar('/api/lojas/'+clienteA+'/publicar',{cookie:cookieA,method:'POST',body:{produtos:[]}})).status,403);
+  assert.equal((await chamar('/api/gestao/cobrancas',{cookie:cookieA,method:'POST',body:{}})).status,403);
+  const t=await chamar('/api/gestao/tarefas',{cookie:cookieA,method:'POST',body:{loja_id:clienteA,tipo:'suporte',titulo:'Configurar impressora',estado:'pendente',prioridade:'normal',minutos:0}});
+  assert.equal(t.status,200);
+  assert.equal((await chamar('/api/gestao/tarefas/'+t.dados.id,{cookie:cookieB,method:'PUT',body:{estado:'concluida'}})).status,400);
+  const c=await chamar('/api/gestao/cobrancas',{cookie:cookieAdmin,method:'POST',body:{loja_id:clienteA,tipo:'implantacao',descricao:'Implantacao',valor:44500,vencimento:'2026-10-15',pedido:crypto.randomUUID()}});
+  assert.equal(c.status,200);
+  const m=await chamar('/api/gestao/movimentos',{cookie:cookieAdmin,method:'POST',body:{cobranca_id:c.dados.id,tipo:'recebimento',valor:10000,data:'2026-10-07',descricao:'Entrada',pedido:crypto.randomUUID()}});
+  assert.equal(m.status,200);
+  const form=new FormData();form.append('arquivo',new Blob(['%PDF-1.4\n%%EOF'],{type:'application/pdf'}),'recibo.pdf');
+  const upload=await fetch(endereco+`/api/gestao/movimentos/${m.dados.id}/comprovantes`,{method:'POST',headers:{cookie:cookieAdmin},body:form});assert.equal(upload.status,200);
+  const comprovante=await upload.json();
+  assert.equal((await fetch(endereco+'/api/gestao/comprovantes/'+comprovante.id,{headers:{cookie:cookieA}})).status,403);
+  assert.equal((await fetch(endereco+'/api/gestao/comprovantes/'+comprovante.id,{headers:{cookie:cookieAdmin}})).status,200);
+  assert.equal((await chamar('/api/admin/lojas/'+clienteA,{cookie:cookieAdmin,method:'DELETE'})).status,409);
+  assert.equal((await chamar('/api/gestao/backups',{cookie:cookieA})).status,403);
+});
+
+test('desativacao e troca de senha revogam sessoes existentes',async()=>{
+  const r=await chamar('/api/gestao/atendentes/'+atendenteA,{cookie:cookieAdmin,method:'PUT',body:{ativo:false}});assert.equal(r.status,200);
+  assert.equal((await chamar('/api/gestao',{cookie:cookieA})).status,401);
+  assert.equal((await chamar('/api/login',{method:'POST',body:{email:'a@teste.local',senha}})).status,401);
+  await chamar('/api/gestao/atendentes/'+atendenteA,{cookie:cookieAdmin,method:'PUT',body:{ativo:true}});
+  const antigo=await login('a@teste.local');
+  assert.equal((await chamar('/api/gestao/senha',{cookie:antigo,method:'PUT',body:{atual:senha,nova:'Nova-senha-teste-2026'}})).status,200);
+  assert.equal((await chamar('/api/gestao',{cookie:antigo})).status,401);
+  assert.equal((await chamar('/api/login',{method:'POST',body:{email:'a@teste.local',senha:'Nova-senha-teste-2026'}})).status,200);
+});

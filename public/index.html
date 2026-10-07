@@ -203,6 +203,16 @@
 
 <script>
 const LIMITE_TITULO = 120;
+const lojaSelecionada = new URLSearchParams(location.search).get('loja');
+const apiDaLoja = url => lojaSelecionada && /^\d+$/.test(lojaSelecionada) ? url.replace('/api/',`/api/lojas/${lojaSelecionada}/`) : url;
+if(lojaSelecionada && /^\d+$/.test(lojaSelecionada)) {
+  const fetchOriginal=window.fetch.bind(window);
+  window.fetch=(url,opcoes)=>{
+    if(url==='/api/eu')url=`/api/gestao/clientes/${lojaSelecionada}/ambiente`;
+    else if(typeof url==='string'&&/^\/api\/(analisar|lote|historico|foto|validar|publicar|mfa|eventos)([/?]|$)/.test(url))url=url.replace('/api/',`/api/lojas/${lojaSelecionada}/`);
+    return fetchOriginal(url,opcoes);
+  };
+}
 const LIMITE_DESCRICAO = 400;
 
 let produtos = [];
@@ -247,8 +257,8 @@ async function iniciarApp() {
   if (!r.ok) { $('telaLogin').classList.remove('escondido'); $('app').classList.add('escondido'); return; }
 
   const eu = await r.json();
-  if (eu.papel === 'atendente' || (eu.admin && !new URLSearchParams(location.search).has('produtos'))) {
-    location.replace('/operacao.html');
+  if (!lojaSelecionada && (eu.papel === 'atendente' || (eu.admin && !new URLSearchParams(location.search).has('produtos')))) {
+    location.replace('/gestao.html');
     return;
   }
   categorias = eu.categorias;
@@ -256,6 +266,7 @@ async function iniciarApp() {
   $('telaLogin').classList.add('escondido');
   $('app').classList.remove('escondido');
   $('nomeLoja').textContent = eu.nome;
+  if(lojaSelecionada && !eu.admin) $('btnPublicar').classList.add('escondido');
   if (eu.admin) $('linkAdmin').classList.remove('escondido');
 
   const aviso = $('avisoConfig');
@@ -407,7 +418,7 @@ function desenhar() {
     return `
       <div class="${classes.join(' ')}">
         <div class="topo">
-          <img src="${p.previewUrl}" alt="">
+          <img src="${apiDaLoja(p.previewUrl)}" alt="">
           <div>
             <div class="arquivo">${escapar(p.arquivo)}</div>
             ${selo}
@@ -621,7 +632,7 @@ function anotar(texto, classe) {
 }
 
 function acompanhar(total) {
-  const fonte = new EventSource('/api/eventos');
+  const fonte = new EventSource(apiDaLoja('/api/eventos'));
   let concluidos = 0;
 
   fonte.onmessage = (msg) => {

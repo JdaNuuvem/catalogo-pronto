@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo Pronto · Gestão</title><link rel="stylesheet" href="/operacao.css"><link rel="stylesheet" href="/gestao.css">
+<script type="module" src="/gestao.js"></script></head><body>
+<header><div><span class="sobretitulo">CATÁLOGO PRONTO</span><h1>Central de gestão</h1><small id="identidade">Carregando…</small></div>
+<nav><a href="/operacao.html">Clientes e equipe</a><a href="/admin.html" class="somente-admin">Configurações</a><button id="senha">Minha senha</button><button id="sair">Sair</button></nav></header>
+<div class="estrutura"><aside aria-label="Navegação principal">
+<a href="#inicio">Visão geral</a><a href="#clientes">Clientes</a><a href="#implantacoes">Implantações</a>
+<a href="#cobrancas">Cobranças</a><a href="#financeiro" class="somente-admin">Financeiro</a><a href="#repasses">Repasses</a>
+<a href="#tarefas">Suporte e tarefas</a><a href="#configuracoes" class="somente-admin">Equipe e backups</a>
+</aside><main><p id="aviso" role="status" hidden></p><div class="filtros" id="periodo">
+<label>De<input type="date" id="inicio"></label><label>Até<input type="date" id="fim"></label><button id="atualizar">Atualizar período</button>
+</div><section id="conteudo" aria-live="polite"></section></main></div>
+<dialog id="formDialog"><form id="formDinamico"><h2 id="formTitulo"></h2><p id="formDica" class="suave"></p><div id="formCampos" class="grade"></div>
+<p class="erro" id="formErro" role="alert"></p><div class="acoes"><button type="button" id="cancelar">Cancelar</button><button type="submit" class="principal">Salvar</button></div></form></dialog>
+<dialog id="confirmDialog"><h2>Confirmar ação</h2><p id="confirmTexto"></p><div class="acoes"><button id="nao">Cancelar</button><button id="sim" class="principal">Confirmar</button></div></dialog>
+</body></html>

@@ -47,7 +47,7 @@ function renderizar() {
       <td class="data">${dataBr(c.vencimento)}<small><span class="marca ${c.etapa === 'pausada' ? '' : status.classe}">${c.etapa === 'pausada' ? 'Loja pausada' : status.texto}</span></small><small>Plano: ${dinheiro(c.plano_centavos)}</small></td>
       <td>${dinheiro(c.servico_centavos)}<small>${c.produtos_contratados} produtos</small><small>Atendente: ${dinheiro(c.parte_atendente_centavos)}</small></td>
       <td>${dinheiro(c.suporte_centavos)}<small>Atendente: ${dinheiro(c.suporte_atendente_centavos)}</small></td>
-      <td>${c.whatsapp ? `<a href="https://wa.me/${numero}" target="_blank" rel="noopener">WhatsApp</a>` : '<small>WhatsApp não informado</small>'}${usuario.admin ? `<button data-editar="${c.id}">Editar</button>` : ''}</td></tr>`;
+      <td><a href="/gestao.html#cliente-${c.id}">Abrir ficha</a>${c.whatsapp ? `<a href="https://wa.me/${numero}" target="_blank" rel="noopener">WhatsApp</a>` : '<small>WhatsApp não informado</small>'}${usuario.admin ? `<button data-editar="${c.id}">Editar</button>` : ''}</td></tr>`;
   }).join('') : '<tr><td colspan="6" class="vazio">Nenhum cliente encontrado. Os clientes vinculados aparecerão aqui.</td></tr>';
 }
 async function carregar() {
@@ -78,7 +78,7 @@ function previa() {
   const total = Math.round(Number(f.implantacao.value) * 100) + Math.max(0, Number(f.produtos_contratados.value) - 25) * Math.round(Number(f.adicional.value) * 100);
   const parte = f.atendente_id.value ? Math.floor(total / 2) : 0;
   const suporte = f.atendente_id.value ? Math.floor(Number(f.suporte.value) * 100 / 2) : 0;
-  $('previa').textContent = `Serviço inicial: ${dinheiro(total)} · Parte do atendente: ${dinheiro(parte)} · Parte mensal do suporte: ${dinheiro(suporte)}.`;
+  $('previa').textContent = `Estimativa antes dos custos: serviço inicial ${dinheiro(total)} · Atendente ${dinheiro(parte)} · Suporte ${dinheiro(suporte)}. Os valores efetivos serão calculados na gestão financeira.`;
 }
 async function enviarForm(form, executar) {
   const botao = form.querySelector('[type=submit]'); botao.disabled = true; form.querySelector('.erro').textContent = '';

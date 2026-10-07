@@ -150,13 +150,37 @@ app.get('/api/eu', exigirLogin, (req, res) => {
 require('./lib/operacao').montarRotas(app, {
   db, banco, exigirLogin, exigirAdmin: sessao.exigirAdmin,
 });
+require('./lib/gestao-rotas').montar(app, {
+  db, exigirLogin, exigirAdmin: sessao.exigirAdmin, sessao, pastaDados: PASTA_DADOS, fila,
+});
+require('./lib/gestao-materiais').montar(app, {db,exigirLogin,pastaDados:PASTA_DADOS,fila,configIa,lerCategorias});
+require('./lib/gestao-comprovantes').montar(app,{db,exigirLogin,exigirAdmin:sessao.exigirAdmin,pastaDados:PASTA_DADOS});
+
+app.get('/api/gestao/clientes/:id/ambiente',exigirLogin,(req,res)=>{
+  const c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(req.params.id);
+  if(!c||(!req.loja.admin&&(req.loja.papel!=='atendente'||c.atendente_id!==req.loja.id)))return res.status(403).json({erro:'cliente fora da carteira'});
+  res.json({nome:c.nome,admin:!!req.loja.admin,papel:req.loja.papel,linkPublico:c.cdp_link,
+    temCredenciais:!!(c.cdp_email&&c.cdp_senha),publicando:fila.estaOcupada(c.id),
+    temChaveIa:ia.configuracaoAtual(configIa()).temChave,categorias:lerCategorias()});
+});
+
+app.use('/api',(req,res,next)=>{
+  const m=req.url.match(/^\/lojas\/(\d+)(\/(?:analisar|lote|historico|foto|validar|publicar|mfa|eventos)(?:[/?].*)?)$/);
+  if(!m)return next();
+  exigirLogin(req,res,()=>{
+    const u=req.usuario,c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(Number(m[1]));
+    if(!c||(!u.admin&&(u.papel!=='atendente'||c.atendente_id!==u.id)))return res.status(403).json({erro:'cliente fora da carteira'});
+    if(!u.admin&&/^\/(publicar|mfa)([/?]|$)/.test(m[2]))return res.status(403).json({erro:'publicacao restrita ao administrador'});
+    req.contextoLoja=c;req.loja=c;req.url=m[2];next();
+  });
+});
 
 // Contas da equipe consultam a carteira, sem usar as rotas de uma loja cliente.
 app.use('/api', (req, res, next) => {
   const dados = sessao.verificar(sessao.lerCookies(req)[sessao.NOME_COOKIE]);
   if (dados) {
     const conta = db.prepare('SELECT papel, admin FROM lojas WHERE id = ?').get(dados.id);
-    if (conta && conta.papel === 'atendente' && !conta.admin) {
+    if (conta && conta.papel === 'atendente' && !conta.admin && !req.contextoLoja) {
       return res.status(403).json({ erro: 'use a central da equipe para consultar seus clientes' });
     }
   }
@@ -546,6 +570,10 @@ app.put('/api/admin/lojas/:id', exigirLogin, sessao.exigirAdmin, (req, res) => {
 });
 
 app.delete('/api/admin/lojas/:id', exigirLogin, sessao.exigirAdmin, (req, res) => {
+  const temHistorico=db.prepare(`SELECT id FROM cobrancas WHERE loja_id=? OR atendente_id=?
+    UNION SELECT id FROM tarefas WHERE loja_id=? OR responsavel_id=?
+    UNION SELECT id FROM materiais WHERE loja_id=? UNION SELECT id FROM auditoria WHERE loja_id=? OR autor_id=?`).get(...Array(7).fill(req.params.id));
+  if(temHistorico)return res.status(409).json({erro:'conta possui historico; arquive pela ficha do cliente ou desative o atendente'});
   if (Number(req.params.id) === req.loja.id) {
     return res.status(400).json({ erro: 'nao da para excluir a propria conta' });
   }
@@ -702,6 +730,7 @@ function aplicarLimiteMfa(lojaId, loteId) {
 }
 
 app.listen(PORTA, () => {
+  require('./lib/gestao-backup').iniciar(db,PASTA_DADOS);
   console.log(`\n  Painel de produtos  ->  http://localhost:${PORTA}`);
   console.log(`  dados em ${PASTA_DADOS}`);
 

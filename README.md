@@ -1,5 +1,20 @@
 # Painel de Produtos
 
+A central de gestao fica em `/gestao.html`: carteira de clientes, implantacoes,
+materiais, suporte, cobrancas, recebimentos, custos, repasses e relatorios.
+Administradores veem toda a operacao; atendentes trabalham com sua carteira.
+
+Cada componente financeiro tem uma cobranca: implantacao, produtos, suporte ou
+plano Cardapio.ai. Registre pagamentos parciais no componente correspondente.
+O plano fica reservado para pagamento a plataforma. Para servicos, lance e rateie
+os custos antes de fecha-los; a metade restante e liberada ao atendente conforme
+o cliente paga. Correcoes de movimentos usam estorno, preservando o historico.
+
+Contratos ativos geram mensalidades sem duplicacao. A rotina verifica cobrancas
+e backups a cada hora, com uma copia diaria do banco, fotos e perfis de navegador.
+Os arquivos ficam em `dados/backups` e podem ser baixados em Equipe e backups.
+Guarde uma copia fora do servidor e preserve `CHAVE_CRIPTO` separadamente.
+
 Seu cliente entra, envia as fotos dos produtos, a IA lê cada embalagem e escreve
 nome e descrição, ele revisa e aprova, e o painel cadastra tudo na loja dele no
 Cardapio.ai. No fim ele recebe o link da loja para divulgar.
@@ -78,8 +93,8 @@ manda as fotos e vocês montam a loja.
 
 | O que a página promete | Valor |
 |---|---|
-| Implementação, até 50 produtos | R$ 400, uma vez |
-| Produto acima de 50 (foto tratada + cadastro) | R$ 3 por produto |
+| Implementação, até 25 produtos | R$ 400, uma vez |
+| Produto acima de 25 (foto tratada + cadastro) | R$ 3 por produto |
 | Manutenção, até 20 produtos novos por mês | R$ 180 por mês |
 | Prazo de entrega | até 48 horas depois das fotos |
 
@@ -258,7 +273,7 @@ sem isso o cliente veria todas as mensagens de uma vez, no fim.
 
 - **Sessão do Cardapio.ai expira.** Quando isso acontece o painel pede o código MFA
   de novo. É o comportamento do Cardapio.ai, não dá para contornar.
-- **Preço entra como 0.** O painel não pergunta preço; alguém precisa preenchê-los
-  no Cardapio.ai depois, ou a loja não vende.
+- **Preço precisa de revisão.** A leitura da foto começa com preço 0; informe o
+  preço correto na revisão. A publicação exige preço positivo.
 - **Uma loja do Cardapio.ai por conta.** Se um cliente tiver duas lojas, cadastre
   duas contas no painel.
