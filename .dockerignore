@@ -1,0 +1,11 @@
+.git
+node_modules
+dados
+.env
+.env.*
+!.env.exemplo
+*.log
+.perfil-navegador
+.envios
+tests
+scripts

@@ -247,6 +247,10 @@ async function iniciarApp() {
   if (!r.ok) { $('telaLogin').classList.remove('escondido'); $('app').classList.add('escondido'); return; }
 
   const eu = await r.json();
+  if (eu.papel === 'atendente' || (eu.admin && !new URLSearchParams(location.search).has('produtos'))) {
+    location.replace('/operacao.html');
+    return;
+  }
   categorias = eu.categorias;
 
   $('telaLogin').classList.add('escondido');

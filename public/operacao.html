@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Central da operação</title>
+<link rel="stylesheet" href="/operacao.css">
+<script src="/operacao.js" defer></script>
+</head>
+<body>
+<header><div><span class="sobretitulo">CLIENTES · EQUIPE · VENCIMENTOS</span><h1>Central da operação</h1></div>
+<nav><a href="/admin.html" class="somente-admin">Lojas e configurações</a><a href="/?produtos=1" class="somente-admin">Produtos</a><button id="sair">Sair</button></nav></header>
+<main>
+<p id="identidade">Carregando sua conta…</p>
+<p id="aviso" role="status" hidden></p>
+<section class="resumo" aria-label="Resumo da carteira">
+<article><span>Clientes na carteira</span><strong id="total">—</strong></article>
+<article><span>Vencem hoje</span><strong id="hoje">—</strong></article>
+<article><span>Vencimento passado</span><strong id="passados">—</strong></article>
+<article><span id="rotuloParte">Parte da equipe na implantação</span><strong id="parte">—</strong><small>Previsão, não repasse realizado</small></article>
+</section>
+<section class="cartao somente-admin">
+<div class="titulo"><h2>Equipe de atendimento</h2><button id="novoAtendente">Cadastrar atendente</button></div>
+<div id="equipe"></div>
+</section>
+<section class="cartao">
+<div class="titulo"><div><h2 id="tituloCarteira">Carteira de clientes</h2><p class="suave">Acompanhe os responsáveis e a próxima data de pagamento.</p></div><button id="novoCliente" class="principal somente-admin">Cadastrar cliente</button></div>
+<div class="filtros">
+<label>Buscar cliente<input id="busca" type="search" placeholder="Nome, e-mail ou WhatsApp"></label>
+<label class="somente-admin">Atendente<select id="filtroAtendente"><option value="">Todos</option><option value="sem">Sem responsável</option></select></label>
+<label>Vencimento<select id="filtroVencimento"><option value="">Todos</option><option value="hoje">Hoje</option><option value="proximos">Próximos 7 dias</option><option value="passados">Data passada</option><option value="sem">Sem data</option></select></label>
+<button id="atualizar">Atualizar</button>
+</div>
+<div class="tabela"><table><thead><tr><th>Cliente</th><th>Responsável</th><th>Próximo pagamento</th><th>Serviço inicial</th><th>Suporte mensal</th><th>Ações</th></tr></thead><tbody id="clientes"></tbody></table></div>
+<p class="suave">Divisão de 50% sobre implantação, produtos adicionais e seu suporte mensal. O plano do Cardapio.ai fica separado. Datas passadas indicam necessidade de conferência, não confirmam inadimplência.</p>
+</section>
+</main>
+<dialog id="dialogAtendente">
+<form id="formAtendente">
+<h2>Nova conta de atendente</h2><p class="suave">Cada pessoa entra com seu próprio e-mail e vê os clientes vinculados a ela.</p>
+<label>Nome<input name="nome" required maxlength="120"></label>
+<label>E-mail<input name="email" type="email" required maxlength="254" autocomplete="off"></label>
+<label>Senha inicial<input name="senha" type="password" required minlength="8" maxlength="200" autocomplete="new-password"></label>
+<p class="erro" role="alert"></p><div class="acoes"><button type="button" data-fechar>Cancelar</button><button class="principal" type="submit">Criar conta</button></div>
+</form></dialog>
+<dialog id="dialogCliente">
+<form id="formCliente">
+<h2 id="tituloCliente">Novo cliente</h2>
+<div class="grade">
+<label>Nome da loja<input name="nome" required maxlength="120"></label>
+<label>E-mail de acesso do cliente<input name="email" type="email" required maxlength="254" autocomplete="off"></label>
+<label id="campoSenha">Senha inicial do painel<input name="senha" type="password" minlength="8" maxlength="200" autocomplete="new-password"></label>
+<label>Atendente responsável<select name="atendente_id"><option value="">Sem responsável</option></select></label>
+<label>WhatsApp do cliente<input name="whatsapp" type="tel" maxlength="25" placeholder="DDD + número"></label>
+<label>Próximo pagamento do plano<input name="vencimento" type="date"></label>
+<label>Etapa<select name="etapa"><option value="implantacao">Em implantação</option><option value="ativa">Loja ativa</option><option value="pausada">Pausada</option></select></label>
+<label>Produtos contratados<input name="produtos_contratados" type="number" min="0" max="100000" value="25" required></label>
+<label>Implantação (R$)<input name="implantacao" type="number" min="0" max="1000000" step="0.01" value="400" required></label>
+<label>Por produto acima de 25 (R$)<input name="adicional" type="number" min="0" max="1000000" step="0.01" value="3" required></label>
+<label>Seu suporte mensal (R$)<input name="suporte" type="number" min="0" max="1000000" step="0.01" value="0" required></label>
+<label>Plano Cardapio.ai (R$)<input name="plano" type="number" min="0" max="1000000" step="0.01" value="0" required></label>
+</div>
+<p id="previa" class="previa"></p>
+<p class="suave">Use a data real de vencimento da loja. Atualize após conferir o pagamento. As credenciais do Cardapio.ai são configuradas em “Lojas e configurações”.</p>
+<p class="erro" role="alert"></p><div class="acoes"><button type="button" data-fechar>Cancelar</button><button class="principal" type="submit">Salvar cliente</button></div>
+</form></dialog>
+</body>
+</html>

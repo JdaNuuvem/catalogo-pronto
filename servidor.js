@@ -135,6 +135,7 @@ app.get('/api/eu', exigirLogin, (req, res) => {
   res.json({
     nome: req.loja.nome,
     admin: !!req.loja.admin,
+    papel: req.loja.admin ? 'admin' : req.loja.papel,
     linkPublico: req.loja.cdp_link || null,
     temCredenciais: !!(req.loja.cdp_email && req.loja.cdp_senha),
     publicando: !!(trabalho && trabalho.ativo),
@@ -145,6 +146,22 @@ app.get('/api/eu', exigirLogin, (req, res) => {
 });
 
 // ------------------------------------------------------------------ analise
+
+require('./lib/operacao').montarRotas(app, {
+  db, banco, exigirLogin, exigirAdmin: sessao.exigirAdmin,
+});
+
+// Contas da equipe consultam a carteira, sem usar as rotas de uma loja cliente.
+app.use('/api', (req, res, next) => {
+  const dados = sessao.verificar(sessao.lerCookies(req)[sessao.NOME_COOKIE]);
+  if (dados) {
+    const conta = db.prepare('SELECT papel, admin FROM lojas WHERE id = ?').get(dados.id);
+    if (conta && conta.papel === 'atendente' && !conta.admin) {
+      return res.status(403).json({ erro: 'use a central da equipe para consultar seus clientes' });
+    }
+  }
+  next();
+});
 
 app.post('/api/analisar', exigirLogin, upload.array('fotos', MAXIMO_FOTOS), async (req, res) => {
   if (!req.files || !req.files.length) return res.status(400).json({ erro: 'nenhuma foto recebida' });
@@ -501,7 +518,7 @@ app.get('/api/admin/lojas', exigirLogin, sessao.exigirAdmin, (req, res) => {
   const lojas = db.prepare(`
     SELECT id, nome, email, admin, cdp_email, cdp_link, criada_em,
            (cdp_senha IS NOT NULL) AS tem_senha
-    FROM lojas ORDER BY criada_em DESC
+    FROM lojas WHERE papel = 'cliente' OR admin = 1 ORDER BY criada_em DESC
   `).all();
   res.json({ lojas: lojas.map((l) => ({ ...l, publicando: fila.estaOcupada(l.id) })) });
 });

@@ -5,6 +5,7 @@
     "lib": "lib"
   },
   "scripts": {
+    "test": "node --test tests/*.test.js",
     "start": "node servidor.js",
     "dev": "node servidor.js",
     "chaves": "node -e \"const c=require('crypto');console.log('CHAVE_SESSAO='+c.randomBytes(32).toString('hex'));console.log('CHAVE_CRIPTO='+c.randomBytes(32).toString('hex'))\""
@@ -14,7 +15,8 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.0.3",
     "express": "^5.2.1",
-    "multer": "^2.3.0"
+    "multer": "^2.3.0",
+    "playwright": "1.58.2"
   },
   "private": true
 }
