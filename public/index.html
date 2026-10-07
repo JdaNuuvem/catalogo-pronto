@@ -439,6 +439,10 @@ function desenhar() {
             <label>Categoria</label>
             <select data-campo="categoria" data-i="${i}">${opcoesCategoria(p.categoria)}</select>
           </div>
+          <div>
+            <label>Preço (R$)</label>
+            <input type="text" inputmode="decimal" data-campo="preco" data-i="${i}" value="${escapar(p.preco || '0')}" placeholder="0,00">
+          </div>
         </div>
         <div class="rodape-cartao">
           <input type="checkbox" id="ap${i}" data-campo="aprovado" data-i="${i}" ${p.aprovado ? 'checked' : ''}>
@@ -465,7 +469,7 @@ grade.addEventListener('input', (e) => {
     return;
   }
 
-  produto[campo] = e.target.value;
+  produto[campo] = campo==='preco' ? e.target.value.replace(',','.') : e.target.value;
 
   if (campo === 'titulo' || campo === 'descricao') {
     const limite = campo === 'titulo' ? LIMITE_TITULO : LIMITE_DESCRICAO;
@@ -495,7 +499,7 @@ function guardar(produto, campo) {
         method: 'PUT', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           id: produto.id, titulo: produto.titulo, descricao: produto.descricao,
-          categoria: produto.categoria, aprovado: produto.aprovado,
+          categoria: produto.categoria, preco: produto.preco, aprovado: produto.aprovado,
         }),
       });
       marcarSalvo();
@@ -515,7 +519,7 @@ async function guardarTudo() {
       method: 'PUT', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         id: p.id, titulo: p.titulo, descricao: p.descricao,
-        categoria: p.categoria, aprovado: p.aprovado,
+        categoria: p.categoria, preco: p.preco, aprovado: p.aprovado,
       }),
     }).catch(() => null)));
 }
