@@ -392,7 +392,7 @@ test('app recebe o resumo de cada loja e os lembretes do dia da carteira',async(
   const app=url=>fetch(endereco+url,{headers:{authorization:'Bearer '+token}}).then(r=>r.json());
   const loja=(await app('/api/app/lojas')).lojas.find(l=>l.id===clienteA);
   assert.equal(typeof loja.roteiro.feitas,'number');assert.equal(loja.roteiro.total,11);
-  assert.equal(typeof loja.ficha.completas,'number');assert.equal(loja.ficha.total,7);assert.equal(typeof loja.ficha.secoes.endereco,'boolean');
+  assert.equal(typeof loja.ficha.completas,'number');assert.equal(loja.ficha.total,8);assert.equal(typeof loja.ficha.secoes.endereco,'boolean');
   assert.ok(['implantacao','ativa','pausada'].includes(loja.etapa));
   assert.equal(loja.plano.plano,'PDV+Robô');assert.ok(loja.plano.valido_ate);
   assert.equal(loja.conferencia.situacao,'bloqueante');
@@ -400,6 +400,50 @@ test('app recebe o resumo de cada loja e os lembretes do dia da carteira',async(
   const {lembretes}=await app('/api/app/lembretes');
   assert.ok(Array.isArray(lembretes));
   assert.equal(lembretes.some(l=>l.tipo==='plano-cardapio'),false,'plano da plataforma e assunto do administrador');
+});
+
+test('app monta a implantacao: passos, fotos dos produtos tratadas e adicionais aprovados',async()=>{
+  const entrar=async email=>(await chamar('/api/app/login',{method:'POST',body:{email,senha,dispositivo:'PC'}})).dados.token;
+  const tokenA=await entrar('a@teste.local'),tokenB=await entrar('b@teste.local');
+  const app=(token,url,{method='GET',body,form}={})=>fetch(endereco+url,{method,headers:{authorization:'Bearer '+token,...(body?{'content-type':'application/json'}:{})},body:form||(body?JSON.stringify(body):undefined)})
+    .then(async r=>({status:r.status,dados:await r.json().catch(()=>null)}));
+
+  // Passos: comecam pendentes, so a carteira mexe e o resumo da loja acompanha.
+  const passos=(await app(tokenA,`/api/app/lojas/${clienteA}/implantacao`)).dados.passos;
+  assert.equal(Object.keys(passos).length,10);assert.equal(passos.endereco.estado,'pendente');
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/implantacao/endereco`,{method:'PUT',body:{estado:'feito'}})).dados.passos.endereco.estado,'feito');
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/implantacao/inventado`,{method:'PUT',body:{estado:'feito'}})).status,400);
+  assert.equal((await app(tokenB,`/api/app/lojas/${clienteA}/implantacao/endereco`,{method:'PUT',body:{estado:'pendente'}})).status,403);
+  assert.equal((await app(tokenA,'/api/app/lojas')).dados.lojas.find(l=>l.id===clienteA).implantacao.endereco.estado,'feito');
+
+  // Fotos: o app sobe pelas rotas de produtos do painel; sem IA configurada o item fica para revisar.
+  const sharp=require('sharp');
+  const foto=await sharp({create:{width:600,height:400,channels:3,background:'#c84'}}).png().toBuffer();
+  const form=new FormData();form.append('fotos',new Blob([foto],{type:'image/png'}),'queijo.png');
+  assert.equal((await app(tokenB,`/api/app/lojas/${clienteA}/analisar`,{method:'POST',form})).status,403);
+  const analise=await app(tokenA,`/api/app/lojas/${clienteA}/analisar`,{method:'POST',form});
+  assert.equal(analise.status,200);const item=analise.dados.produtos[0];assert.equal(item.revisar,true);
+  const tratada=await app(tokenA,`/api/app/lojas/${clienteA}/foto/${encodeURIComponent(item.id)}/tratar`,{method:'POST'});
+  assert.equal(tratada.status,200);assert.equal(tratada.dados.fundoRemovido,false);assert.match(tratada.dados.aviso,/não está configurada/);
+  const baixar=async()=>Buffer.from(await (await fetch(endereco+`/api/app/lojas/${clienteA}/foto/${encodeURIComponent(item.id)}`,{headers:{authorization:'Bearer '+tokenA}})).arrayBuffer());
+  const meta=await sharp(await baixar()).metadata();assert.deepEqual([meta.width,meta.height,meta.format],[1000,1000,'png']);
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/lote`)).dados.produtos[0].tratada,true);
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/foto/${encodeURIComponent(item.id)}/desfazer`,{method:'POST'})).dados.ok,true);
+  assert.equal((await sharp(await baixar()).metadata()).width,600);
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/lote`)).dados.produtos[0].tratada,false);
+
+  // Adicionais: sem chave de IA a sugestao explica; grupos aprovados entram na ficha e o texto do cliente fica.
+  await chamar(`/api/gestao/clientes/${clienteA}/ficha`,{cookie:cookieA,method:'PUT',body:{adicionais:{texto:'Bacon extra 4 reais'}}});
+  const sugestao=await app(tokenA,`/api/app/lojas/${clienteA}/adicionais/sugerir`,{method:'POST',body:{produtos:[{titulo:'X-Burguer',categoria:'Lanches'}]}});
+  assert.equal(sugestao.status,502);assert.match(sugestao.dados.erro,/IA/);
+  const grupos=[{nome:'Turbine seu lanche',minimo:0,maximo:3,categorias:['Lanches'],itens:[{nome:'Bacon extra',preco:400}]}];
+  const salvo=await app(tokenA,`/api/app/lojas/${clienteA}/ficha/adicionais`,{method:'PUT',body:{grupos}});
+  assert.equal(salvo.status,200);assert.deepEqual(salvo.dados.ficha.adicionais.grupos,grupos);assert.equal(salvo.dados.completo.adicionais,true);
+  // O cliente salva a ficha de novo pelo formulario: os grupos aprovados nao somem.
+  await chamar(`/api/gestao/clientes/${clienteA}/ficha`,{cookie:cookieA,method:'PUT',body:{adicionais:{texto:'Bacon extra 5 reais',nao_tem:false}}});
+  const ficha=(await app(tokenA,`/api/app/lojas/${clienteA}/ficha`)).dados.ficha;
+  assert.equal(ficha.adicionais.texto,'Bacon extra 5 reais');assert.deepEqual(ficha.adicionais.grupos,grupos);
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/ficha/adicionais`,{method:'PUT',body:{grupos:[{nome:'',itens:[]}]}})).status,400);
 });
 
 test('desativacao e troca de senha revogam sessoes existentes',async()=>{

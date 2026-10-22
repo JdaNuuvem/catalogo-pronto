@@ -155,6 +155,7 @@ mostrar('Contato recebido. A gente chama você no WhatsApp.', true);
 | `OPENROUTER_API_KEY` | uma das duas | leitura das fotos pela IA, via OpenRouter |
 | `IA_PROVEDOR` | não | `anthropic` ou `openrouter`. Sem isso, vale a chave preenchida |
 | `IA_MODELO` | não | troca o modelo. Precisa aceitar imagem |
+| `PHOTOROOM_API_KEY` | não | tira o fundo das fotos dos produtos (Photoroom). Sem ela, as fotos só são padronizadas |
 | `OPENROUTER_SITE` | não | seu domínio, para aparecer nos rankings do OpenRouter |
 | `DOMINIO` | sim | domínio do painel, usado pelo Caddy |
 | `ADMIN_EMAIL` / `ADMIN_SENHA` | 1ª vez | cria a conta de administrador na primeira execução |

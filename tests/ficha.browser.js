@@ -24,7 +24,7 @@ const {chromium}=require('../../automacao/node_modules/playwright');
     await equipe.click('#salvar');await equipe.locator('#progresso li.ok',{hasText:'Loja'}).waitFor();
     // Na ficha do cliente na gestao aparece o cartao da ficha.
     await equipe.goto(base+`/gestao.html#cliente-${id}`);await equipe.locator('#linkFicha').waitFor();
-    assert.match(await equipe.locator('article',{hasText:'Ficha de implantação'}).innerText(),/1 de 7 seções/);
+    assert.match(await equipe.locator('article',{hasText:'Ficha de implantação'}).innerText(),/1 de 8 seções/);
     const {url}=await api('POST',`/api/gestao/clientes/${id}/ficha/link`,{});
 
     // Cliente, no celular, pelo link.

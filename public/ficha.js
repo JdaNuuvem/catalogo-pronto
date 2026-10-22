@@ -10,7 +10,7 @@ const lojaId = Number(new URLSearchParams(location.search).get('loja')) || null;
 const equipe = !token && !!lojaId;
 const base = equipe ? `/api/gestao/clientes/${lojaId}/ficha` : '/api/ficha-publica';
 const DIAS = [['seg', 'Segunda'], ['ter', 'Terça'], ['qua', 'Quarta'], ['qui', 'Quinta'], ['sex', 'Sexta'], ['sab', 'Sábado'], ['dom', 'Domingo']];
-const SECOES = { loja: 'Loja', endereco: 'Endereço', marca: 'Marca', horarios: 'Horários', entrega: 'Entrega', pagamento: 'Pagamento', produtos: 'Produtos' };
+const SECOES = { loja: 'Loja', endereco: 'Endereço', marca: 'Marca', horarios: 'Horários', entrega: 'Entrega', pagamento: 'Pagamento', produtos: 'Produtos', adicionais: 'Adicionais' };
 const form = $('formFicha');
 
 async function pedir(caminho = '', { metodo = 'GET', corpo, arquivo } = {}) {
@@ -68,7 +68,7 @@ function novoBairro(b = {}) {
 
 // ------------------------------------------------------------ ler e preencher o formulario
 function lerFormulario() {
-  const dados = { loja: {}, endereco: {}, marca: {}, horarios: {}, entrega: {}, pagamento: {}, produtos: {} };
+  const dados = { loja: {}, endereco: {}, marca: {}, horarios: {}, entrega: {}, pagamento: {}, produtos: {}, adicionais: {} };
   for (const el of form.elements) {
     if (!el.name || !el.name.includes('.')) continue;
     const [secao, chave] = el.name.split('.');
@@ -97,6 +97,16 @@ function preencher({ ficha, completo }) {
   form.elements.observacoes.value = ficha.observacoes || '';
   preencherDias(ficha.horarios?.dias);
   $('bairros').innerHTML = ''; (ficha.entrega?.bairros || []).forEach(novoBairro);
+  // Grupos montados pela equipe no app: so leitura aqui.
+  const grupos = ficha.adicionais?.grupos || [];
+  $('gruposAdicionais').hidden = !grupos.length;
+  $('gruposAdicionais').replaceChildren(...grupos.map((g) => {
+    const div = document.createElement('div'); div.className = 'ficha-grupo';
+    const b = document.createElement('b'); b.textContent = g.nome;
+    const p = document.createElement('p');
+    p.textContent = g.itens.map((i) => `${i.nome}${i.preco === null ? '' : ` (R$ ${centavosParaTexto(i.preco)})`}`).join(' · ');
+    div.append(b, p); return div;
+  }));
   atualizarResumo({ ficha, completo });
   atualizarVisibilidade();
 }
@@ -119,6 +129,7 @@ function atualizarVisibilidade() {
   $('blocoEntrega').hidden = !entrega; $('porRaio').hidden = bairros; $('porBairro').hidden = !bairros;
   $('blocoPix').hidden = !campo('pagamento.pix').checked;
   $('blocoLink').hidden = !form.querySelector('[name="produtos.origem"][value=link]').checked;
+  $('blocoAdicionais').hidden = campo('adicionais.nao_tem').checked;
 }
 function marcarErros(erros = []) {
   form.querySelectorAll('.campo-erro').forEach((el) => el.classList.remove('campo-erro'));

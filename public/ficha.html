@@ -100,6 +100,13 @@
       <label id="blocoLink">Link do cardápio atual<input name="produtos.link_cardapio" inputmode="url" placeholder="https://www.ifood.com.br/delivery/..."></label>
     </section>
 
+    <section class="cartao" data-secao="adicionais"><h2>8. Adicionais</h2>
+      <p class="ficha-dica">Adicionais são as opções que o cliente escolhe junto com o produto: tamanho, borda, ingrediente extra, bebida do combo.</p>
+      <label class="checagem"><input type="checkbox" name="adicionais.nao_tem"> Minha loja não tem adicionais</label>
+      <label id="blocoAdicionais">Quais adicionais você oferece e quanto custa cada um?<textarea name="adicionais.texto" maxlength="3000" rows="4" placeholder="Ex.: Lanches: bacon extra R$ 4,00, queijo extra R$ 3,00. Pizzas: borda de catupiry R$ 8,00. Açaí: escolha até 3 complementos grátis."></textarea></label>
+      <div id="gruposAdicionais" class="ficha-grupos" hidden></div>
+    </section>
+
     <section class="cartao"><h2>Observações</h2>
       <label>Algo mais que a gente precisa saber?<textarea name="observacoes" maxlength="2000" rows="3"></textarea></label></section>
 

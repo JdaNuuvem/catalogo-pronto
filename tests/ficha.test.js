@@ -10,6 +10,7 @@ const completa = () => ({
   entrega: { faz_entrega: true, retirada: true, modo: 'raio', raio_base_km: '3', taxa_base: '5,00', taxa_km: '1,50', distancia_maxima_km: '10', frete_gratis_km: '', tempo_preparo_min: '30' },
   pagamento: { pix: true, pix_tipo: 'email', pix_chave: 'Financeiro@Mercado.com', dinheiro: true, credito: true, debito: false, vale: false },
   produtos: { origem: 'link', link_cardapio: 'https://www.ifood.com.br/delivery/sao-paulo-sp/mercado' },
+  adicionais: { texto: 'Queijo extra 3 reais', grupos: [{ nome: 'Turbine', minimo: 0, maximo: 2, categorias: ['Lanches'], itens: [{ nome: 'Queijo extra', preco: '3,00' }] }] },
 });
 
 test('normaliza os formatos para o que o Cardapio.ai espera', () => {
@@ -78,4 +79,18 @@ test('validar de novo uma ficha ja gravada nao muda nada (valores em centavos fi
   assert.deepEqual(duas.erros, []);
   assert.deepEqual(duas.ficha, uma);
   assert.equal(duas.ficha.entrega.taxa_km, 150);
+});
+
+test('adicionais: grupos aprovados com precos, ou a loja diz que nao tem', () => {
+  const { ficha, erros, completo } = validarFicha(completa());
+  assert.deepEqual(erros, []);
+  assert.deepEqual(ficha.adicionais.grupos, [{ nome: 'Turbine', minimo: 0, maximo: 2, categorias: ['Lanches'], itens: [{ nome: 'Queijo extra', preco: 300 }] }]);
+  assert.equal(completo.adicionais, true);
+  // Item sem preco: o grupo fica guardado, mas a secao ainda nao esta pronta.
+  const semPreco = validarFicha({ adicionais: { grupos: [{ nome: 'Bebidas', maximo: 1, itens: [{ nome: 'Suco' }] }] } });
+  assert.deepEqual(semPreco.erros, []); assert.equal(semPreco.completo.adicionais, false);
+  assert.equal(validarFicha({ adicionais: { nao_tem: true } }).completo.adicionais, true);
+  assert.equal(validarFicha({}).completo.adicionais, false);
+  const ruins = validarFicha({ adicionais: { grupos: [{ nome: '', itens: [] }, { nome: 'X', minimo: 3, maximo: 1, itens: [{ nome: 'a' }] }] } }).erros.map((e) => e.mensagem);
+  assert.deepEqual(ruins, ['dê um nome ao grupo', 'cada grupo precisa de itens com nome', 'o mínimo não pode passar do máximo']);
 });

@@ -69,6 +69,78 @@ class Api {
   /** Situacao do plano da loja no Cardapio.ai (lida pelo app na tela de plano). */
   salvarPlano(lojaId, plano) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/plano`, { metodo: 'POST', corpo: plano }); }
 
+  // ---------------------------------------------------------------- implantacao
+
+  async implantacao(lojaId) { return (await this.pedir(`/api/app/lojas/${Number(lojaId)}/implantacao`)).passos; }
+  async salvarPasso(lojaId, passo, estado) {
+    return (await this.pedir(`/api/app/lojas/${Number(lojaId)}/implantacao/${encodeURIComponent(passo)}`, { metodo: 'PUT', corpo: { estado } })).passos;
+  }
+  ficha(lojaId) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/ficha`); }
+  async sugerirAdicionais(lojaId, produtos) {
+    return (await this.pedir(`/api/app/lojas/${Number(lojaId)}/adicionais/sugerir`, { metodo: 'POST', corpo: { produtos } })).grupos;
+  }
+  salvarAdicionais(lojaId, { grupos, nao_tem }) {
+    return this.pedir(`/api/app/lojas/${Number(lojaId)}/ficha/adicionais`, { metodo: 'PUT', corpo: { grupos, nao_tem } });
+  }
+
+  // ------------------------------------------------------------------- produtos
+  // As mesmas rotas do painel web (/api/analisar, /api/lote...), pelo prefixo do app.
+
+  lote(lojaId) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/lote`); }
+  salvarItem(lojaId, campos) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/lote/item`, { metodo: 'PUT', corpo: campos }); }
+  descartarLote(lojaId) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/lote/descartar`, { metodo: 'POST', corpo: {} }); }
+  tratarFoto(lojaId, id) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/foto/${encodeURIComponent(id)}/tratar`, { metodo: 'POST', corpo: {} }); }
+  desfazerFoto(lojaId, id) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/foto/${encodeURIComponent(id)}/desfazer`, { metodo: 'POST', corpo: {} }); }
+  validar(lojaId, produtos) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/validar`, { metodo: 'POST', corpo: { produtos } }); }
+  publicar(lojaId) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/publicar`, { metodo: 'POST', corpo: {} }); }
+  mfa(lojaId, codigo) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/mfa`, { metodo: 'POST', corpo: { codigo } }); }
+
+  /** Pedido com corpo pronto (multipart) ou resposta que nao e JSON (imagem, eventos). */
+  async bruto(caminho, opcoes = {}) {
+    let r;
+    try {
+      r = await this.fetch(new URL(caminho, this.servidor), { ...opcoes, headers: { ...(opcoes.headers || {}), authorization: `Bearer ${this.token}` } });
+    } catch {
+      throw new Error('Não foi possível falar com o painel. Confira a internet e o endereço.');
+    }
+    if (r.status === 401) { this.token = null; throw Object.assign(new Error('Entre novamente no app.'), { sessaoExpirada: true }); }
+    if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.erro || `O painel respondeu ${r.status}.`); }
+    return r;
+  }
+
+  /** Sobe fotos ({ nome, tipo, dados: Buffer }) para a IA ler. Devolve os produtos lidos. */
+  async analisar(lojaId, fotos) {
+    const form = new FormData();
+    for (const f of fotos) form.append('fotos', new Blob([f.dados], { type: f.tipo }), f.nome);
+    return (await this.bruto(`/api/app/lojas/${Number(lojaId)}/analisar`, { method: 'POST', body: form })).json();
+  }
+
+  /** Foto de um item (previewUrl do painel vem como /api/foto/...). */
+  async foto(lojaId, previewUrl) {
+    const caminho = String(previewUrl).replace(/^\/api\/foto\//, `/api/app/lojas/${Number(lojaId)}/foto/`);
+    return Buffer.from(await (await this.bruto(caminho)).arrayBuffer());
+  }
+  async imagemFicha(lojaId, tipo) {
+    return Buffer.from(await (await this.bruto(`/api/app/lojas/${Number(lojaId)}/ficha/imagem/${encodeURIComponent(tipo)}`)).arrayBuffer());
+  }
+
+  /** Acompanha a publicacao: chama aoEvento para cada evento ate a fila encerrar. */
+  async eventos(lojaId, aoEvento) {
+    const r = await this.bruto(`/api/app/lojas/${Number(lojaId)}/eventos`);
+    const leitor = r.body.getReader(), decodificar = new TextDecoder();
+    let resto = '';
+    for (;;) {
+      const { value, done } = await leitor.read();
+      if (done) break;
+      resto += decodificar.decode(value, { stream: true });
+      const partes = resto.split('\n\n'); resto = partes.pop();
+      for (const p of partes) {
+        const linha = p.split('\n').find((l) => l.startsWith('data: '));
+        if (linha) { try { aoEvento(JSON.parse(linha.slice(6))); } catch { /* evento ilegivel */ } }
+      }
+    }
+  }
+
   async sair() {
     try { await this.pedir('/api/app/sair', { metodo: 'POST', corpo: {} }); } finally { this.token = null; }
   }

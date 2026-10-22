@@ -16,6 +16,7 @@ const banco = require('./lib/banco');
 const sessao = require('./lib/sessao');
 const cardapio = require('./lib/cardapio');
 const ia = require('./lib/ia');
+const imagem = require('./lib/imagem');
 const { Fila } = require('./lib/fila');
 
 const RAIZ = __dirname;
@@ -159,7 +160,8 @@ require('./lib/gestao-materiais').montar(app, {db,exigirLogin,pastaDados:PASTA_D
 require('./lib/gestao-comprovantes').montar(app,{db,exigirLogin,exigirAdmin:sessao.exigirAdmin,pastaDados:PASTA_DADOS});
 require('./lib/lojas-rotas').montar(app,{db,banco,fila,exigirLogin,exigirAdmin:sessao.exigirAdmin});
 const {exigirApp}=require('./lib/cofre').montar(app,{db,banco,exigirLogin,configCardapio:CONFIG_CARDAPIO});
-require('./lib/ficha-rotas').montar(app,{db,exigirLogin,exigirApp,pastaDados:PASTA_DADOS});
+require('./lib/ficha-rotas').montar(app,{db,exigirLogin,exigirApp,pastaDados:PASTA_DADOS,sugerirAdicionais:(entrada)=>ia.sugerirAdicionais(entrada,configIa())});
+require('./lib/implantacao-rotas').montar(app,{db,exigirApp});
 require('./lib/conferencia-rotas').montar(app,{db,exigirLogin,exigirApp});
 require('./lib/app-resumo').montar(app,{db,exigirApp});
 require('./lib/gestao-pix').montar(app,{db,exigirLogin,exigirAdmin:sessao.exigirAdmin,fila,cardapio,banco,configCardapio:CONFIG_CARDAPIO,pastaPerfis:PASTA_PERFIS});
@@ -170,6 +172,17 @@ app.get('/api/gestao/clientes/:id/ambiente',exigirLogin,(req,res)=>{
   res.json({nome:c.nome,admin:!!req.loja.admin,papel:req.loja.papel,linkPublico:c.cdp_link,
     temCredenciais:!!(c.cdp_email&&c.cdp_senha),publicando:fila.estaOcupada(c.id),
     temChaveIa:ia.configuracaoAtual(configIa()).temChave,categorias:lerCategorias()});
+});
+
+// O app desktop usa as mesmas rotas de produtos, com o token dele e so nas lojas da carteira.
+app.use('/api',(req,res,next)=>{
+  const m=req.url.match(/^\/app\/lojas\/(\d+)(\/(?:analisar|lote|historico|foto|validar|publicar|mfa|eventos)(?:[/?].*)?)$/);
+  if(!m)return next();
+  exigirApp(req,res,()=>{
+    const u=req.loja,c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(Number(m[1]));
+    if(!c||(!u.admin&&(u.papel!=='atendente'||c.atendente_id!==u.id)))return res.status(403).json({erro:'cliente fora da carteira'});
+    req.usuarioApp=u;req.contextoLoja=c;req.loja=c;req.url=m[2];next();
+  });
 });
 
 app.use('/api',(req,res,next)=>{
@@ -250,11 +263,15 @@ function paraLinha(p) {
 }
 
 /** Linha da tabela itens -> ficha da tela. */
-function paraFicha(linha) {
+function paraFicha(linha, lojaId) {
+  const caminho = lojaId ? caminhoDaFoto(lojaId, linha.arquivo) : null;
+  const tratada = !!caminho && imagem.foiTratada(caminho);
   return {
     id: linha.arquivo,
     arquivo: linha.nome_original || linha.arquivo,
-    previewUrl: `/api/foto/${encodeURIComponent(linha.arquivo)}`,
+    // A versao muda quando a foto e tratada ou desfeita, para a tela nao mostrar a do cache.
+    previewUrl: `/api/foto/${encodeURIComponent(linha.arquivo)}${tratada ? `?v=${Math.round(fs.statSync(caminho).mtimeMs)}` : ''}`,
+    tratada,
     titulo: linha.titulo,
     descricao: linha.descricao,
     categoria: linha.categoria,
@@ -287,7 +304,7 @@ app.get('/api/lote', exigirLogin, (req, res) => {
       // acompanhamento em vez de mostrar um lote parado.
       publicando: fila.estaOcupada(lote.loja_id),
     },
-    produtos: linhas.map(paraFicha),
+    produtos: linhas.map((l) => paraFicha(l, lote.loja_id)),
   });
 });
 
@@ -313,6 +330,23 @@ app.post('/api/lote/descartar', exigirLogin, (req, res) => {
 
 app.get('/api/historico', exigirLogin, (req, res) => {
   res.json({ lotes: banco.historico(db, req.loja.id) });
+});
+
+/** Tira o fundo e padroniza a foto de um item do lote (o original fica guardado para desfazer). */
+app.post('/api/foto/:arquivo/tratar', exigirLogin, async (req, res) => {
+  let caminho;
+  try { caminho = caminhoDaFoto(req.loja.id, req.params.arquivo); } catch { return res.status(400).json({ erro: 'foto invalida' }); }
+  if (!fs.existsSync(caminho)) return res.status(404).json({ erro: 'foto nao encontrada' });
+  try {
+    const r = await imagem.tratar(caminho);
+    res.json({ ok: true, ...r, previewUrl: `/api/foto/${encodeURIComponent(path.basename(caminho))}?v=${Date.now()}` });
+  } catch (e) { res.status(500).json({ erro: `nao consegui tratar a foto: ${e.message}` }); }
+});
+
+app.post('/api/foto/:arquivo/desfazer', exigirLogin, (req, res) => {
+  let caminho;
+  try { caminho = caminhoDaFoto(req.loja.id, req.params.arquivo); } catch { return res.status(400).json({ erro: 'foto invalida' }); }
+  res.json({ ok: imagem.desfazer(caminho), previewUrl: `/api/foto/${encodeURIComponent(path.basename(caminho))}?v=${Date.now()}` });
 });
 
 app.get('/api/foto/:arquivo', exigirLogin, (req, res) => {
@@ -365,7 +399,7 @@ app.post('/api/publicar', exigirLogin, (req, res) => {
   try {
     const pendentes = banco.itensDoLote(db, lote.id)
       .filter((i) => i.aprovado && i.estado !== 'enviado');
-    produtos = prepararProdutos(loja.id, pendentes.map(paraFicha));
+    produtos = prepararProdutos(loja.id, pendentes.map((p) => paraFicha(p)));
   } catch {
     return res.status(400).json({ erro: 'foto invalida no lote' });
   }
@@ -651,7 +685,7 @@ function retomarPublicacoes() {
 
     let produtos;
     try {
-      produtos = prepararProdutos(loja.id, pendentes.map(paraFicha));
+      produtos = prepararProdutos(loja.id, pendentes.map((p) => paraFicha(p)));
     } catch {
       banco.devolverParaRevisao(db, lote.id, 'uma das fotos do lote sumiu do disco');
       continue;

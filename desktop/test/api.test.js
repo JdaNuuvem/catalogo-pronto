@@ -81,3 +81,35 @@ test('busca os lembretes do dia da carteira', async () => {
   assert.equal((await api.lembretes())[0].tipo, 'vencida');
   assert.equal(chamadas[0].url, 'https://painel.exemplo/api/app/lembretes');
 });
+
+test('implantacao usa as rotas de produtos do painel pelo prefixo do app', async () => {
+  const chamadas = [];
+  const fetch = async (url, opcoes) => {
+    chamadas.push({ url: String(url), ...opcoes });
+    return { ok: true, status: 200, json: async () => ({ produtos: [{ id: 'a.png' }] }), arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer };
+  };
+  const api = new Api({ servidor: 'https://painel.exemplo', token: 'tk', fetch });
+  await api.analisar(7, [{ nome: 'queijo.png', tipo: 'image/png', dados: Buffer.from('x') }]);
+  assert.equal(chamadas[0].url, 'https://painel.exemplo/api/app/lojas/7/analisar');
+  assert.equal(chamadas[0].headers.authorization, 'Bearer tk');
+  assert.equal(chamadas[0].body.get('fotos').name, 'queijo.png');
+  const foto = await api.foto(7, '/api/foto/a%20b.png?v=12');
+  assert.equal(chamadas[1].url, 'https://painel.exemplo/api/app/lojas/7/foto/a%20b.png?v=12');
+  assert.deepEqual([...foto], [1, 2, 3]);
+});
+
+test('acompanha a publicacao lendo os eventos ate o painel encerrar', async () => {
+  const pedacos = ['data: {"tipo":"etapa","texto":"a"}\n\nda', 'ta: {"tipo":"mfa"}\n\n', 'data: {"tipo":"fim","ok":2}\n\n'];
+  const fetch = async () => ({ ok: true, status: 200, body: { getReader: () => ({ read: async () => (pedacos.length ? { value: new TextEncoder().encode(pedacos.shift()), done: false } : { done: true }) }) } });
+  const api = new Api({ servidor: 'https://painel.exemplo', token: 'tk', fetch });
+  const eventos = [];
+  await api.eventos(7, (e) => eventos.push(e.tipo));
+  assert.deepEqual(eventos, ['etapa', 'mfa', 'fim']);
+});
+
+test('token vencido no meio da implantacao volta para a tela de login', async () => {
+  const fetch = async () => ({ ok: false, status: 401, json: async () => ({}) });
+  const api = new Api({ servidor: 'https://painel.exemplo', token: 'tk', fetch });
+  await assert.rejects(api.foto(7, '/api/foto/a.png'), (e) => e.sessaoExpirada === true);
+  assert.equal(api.token, null);
+});

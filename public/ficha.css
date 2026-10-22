@@ -32,6 +32,10 @@
 .ficha-dia input[type=time]{padding:8px;font:inherit;border-radius:10px;border:1px solid rgba(35,32,28,.12);background:rgba(255,255,255,.8)}
 .ficha-dia .segundo{font-size:12px;color:var(--suave)}
 .ficha-bairros{display:grid;gap:8px;margin-bottom:8px}
+.ficha-dica{margin:0 0 12px;color:var(--suave,#6b655c);font-size:13px}
+.ficha-grupos{display:grid;gap:8px;margin-top:12px}
+.ficha-grupo{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.6);border:1px solid rgba(35,32,28,.08)}
+.ficha-grupo b{display:block}.ficha-grupo p{margin:2px 0 0;font-size:13px;color:var(--suave,#6b655c)}
 .ficha-bairro{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:8px}
 .ficha-bairro input{padding:9px;border-radius:10px;border:1px solid rgba(35,32,28,.12);font:inherit}
 .campo-erro{outline:2px solid #d9543c!important;outline-offset:1px}

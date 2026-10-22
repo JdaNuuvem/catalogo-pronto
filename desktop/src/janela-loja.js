@@ -16,6 +16,7 @@ const { situacaoDaPagina, scriptDePreenchimento } = require('./login-automatico'
 const { SCRIPT_LEITURA, conferir } = require('./catalogo');
 const { SCRIPT_PLANO, lerPlano } = require('./plano');
 const { SCRIPT_ABRIR_CONVERSA, SCRIPT_LER_MENSAGEM, codigoNovo, scriptPreencherCodigo } = require('./codigo-email');
+const implantacao = require('./implantacao');
 
 const LARGURA_MENU = 224, ALTURA_TOPO = 64, MARGEM_SITE = 12, TENTATIVAS = 3;
 const SECOES = [
@@ -122,35 +123,54 @@ function prepararNavegador(estado, id) {
 async function buscarCodigo(estado) {
   if (estado.buscandoCodigo) return;
   estado.buscandoCodigo = true;
-  const pedidoEm = Date.now(), cdp = estado.secoes.cardapio, mail = estado.secoes.email;
+  const pedidoEm = Date.now(), cdp = estado.secoes.cardapio;
   const naTelaDoCodigo = () => vivo(cdp.view.webContents) && situacaoDaPagina('cardapio', cdp.view.webContents.getURL(), cdp.inicio) === 'codigo';
   avisar(estado, 'O Cardapio.ai pediu o código. Procurando no e-mail da loja…');
   try {
-    for (let tentativa = 0; tentativa < 40 && naTelaDoCodigo(); tentativa++) {
-      const wc = mail.view.webContents;
-      if (!vivo(wc)) return;
-      // Enquanto o e-mail ainda esta entrando (login automatico), so espera.
-      if (situacaoDaPagina('email', wc.getURL(), mail.inicio) !== 'dentro') { await espera(3000); continue; }
-      // De tempos em tempos volta a caixa de entrada, para a conversa trazer a mensagem nova.
-      if (tentativa % 4 === 0) {
-        const conta = /\/u\/(\d+)\//.exec(new URL(wc.getURL()).pathname);
-        await wc.loadURL(conta ? `${new URL(wc.getURL()).origin}/u/${conta[1]}/inbox` : mail.inicio).catch(() => {});
-        await espera(3000);
-      }
-      await wc.executeJavaScript(SCRIPT_ABRIR_CONVERSA).catch(() => false);
-      await espera(2500);
-      const codigo = codigoNovo(await wc.executeJavaScript(SCRIPT_LER_MENSAGEM).catch(() => ({})), pedidoEm);
-      if (codigo && naTelaDoCodigo()) {
-        await cdp.view.webContents.executeJavaScript(scriptPreencherCodigo(codigo));
-        avisar(estado, 'Código lido no e-mail da loja e preenchido.');
-        return;
-      }
-      await espera(2000);
-    }
-    if (naTelaDoCodigo()) avisar(estado, 'Não achei o código novo no e-mail. Abra a seção E-mail da loja e digite à mão.');
+    const codigo = await lerCodigoNoEmail(estado, pedidoEm, naTelaDoCodigo);
+    if (codigo && naTelaDoCodigo()) {
+      await cdp.view.webContents.executeJavaScript(scriptPreencherCodigo(codigo));
+      avisar(estado, 'Código lido no e-mail da loja e preenchido.');
+    } else if (naTelaDoCodigo()) avisar(estado, 'Não achei o código novo no e-mail. Abra a seção E-mail e digite à mão.');
   } finally {
     estado.buscandoCodigo = false;
   }
+}
+
+/**
+ * Procura no e-mail da loja a mensagem "Codigo de acesso" chegada depois de pedidoEm.
+ * Serve ao login desta janela e a publicacao feita pelo servidor. Para quando
+ * continuar() devolver false; devolve o codigo ou null.
+ */
+async function lerCodigoNoEmail(estado, pedidoEm, continuar) {
+  const mail = estado.secoes.email;
+  if (!mail || !estado.credenciais.email) return null;
+  for (let tentativa = 0; tentativa < 40 && continuar(); tentativa++) {
+    const wc = mail.view.webContents;
+    if (!vivo(wc)) return null;
+    // Enquanto o e-mail ainda esta entrando (login automatico), so espera.
+    if (situacaoDaPagina('email', wc.getURL(), mail.inicio) !== 'dentro') { await espera(3000); continue; }
+    // De tempos em tempos volta a caixa de entrada, para a conversa trazer a mensagem nova.
+    if (tentativa % 4 === 0) {
+      const conta = /\/u\/(\d+)\//.exec(new URL(wc.getURL()).pathname);
+      await wc.loadURL(conta ? `${new URL(wc.getURL()).origin}/u/${conta[1]}/inbox` : mail.inicio).catch(() => {});
+      await espera(3000);
+    }
+    await wc.executeJavaScript(SCRIPT_ABRIR_CONVERSA).catch(() => false);
+    await espera(2500);
+    const codigo = codigoNovo(await wc.executeJavaScript(SCRIPT_LER_MENSAGEM).catch(() => ({})), pedidoEm);
+    if (codigo) return codigo;
+    await espera(2000);
+  }
+  return null;
+}
+
+/** Abre uma pagina do painel do Cardapio.ai (ex.: "account?hours") na secao Cardapio.ai. */
+function abrirNoCardapio(estado, caminho) {
+  const secao = estado.secoes.cardapio;
+  if (!secao?.inicio) { avisar(estado, 'Esta loja ainda não tem o login do Cardapio.ai no cofre.'); return; }
+  secao.view.webContents.loadURL(new URL(String(caminho || ''), secao.inicio).toString());
+  mostrar(estado, 'cardapio');
 }
 
 /** Le o plano numa janela escondida do mesmo perfil (ja logado), sem tirar ninguem da pagina. */
@@ -227,7 +247,8 @@ async function abrir({ loja, api, aoExpirar }) {
   });
   win.removeMenu();
   const perfil = session.fromPartition(`persist:loja-${loja.id}`);
-  const estado = { win, loja, api, perfil, secoes: {}, credenciais: {}, atual: 'resumo', aviso: '', conferindo: false };
+  const estado = { win, loja, api, perfil, secoes: {}, credenciais: {}, atual: 'resumo', aviso: '', conferindo: false,
+    aoExpirar: () => { if (!win.isDestroyed()) win.close(); aoExpirar(); } };
   abertas.set(loja.id, estado);
   win.on('closed', () => {
     abertas.delete(loja.id);
@@ -273,12 +294,15 @@ async function abrir({ loja, api, aoExpirar }) {
 // ------------------------------------------------------------------ canais
 
 /** Acoes pedidas pela moldura ou pelas paginas do app. So valem dentro da propria janela. */
+const estadoDe = (wc) => [...abertas.values()].find((e) => !e.win.isDestroyed()
+  && (e.win.webContents === wc || Object.values(e.secoes).some(({ view }) => view.webContents === wc))) || null;
+
 function registrarCanais() {
   const daLoja = (fn) => (evento, ...args) => {
-    const estado = [...abertas.values()].find((e) => !e.win.isDestroyed()
-      && (e.win.webContents === evento.sender || Object.values(e.secoes).some(({ view }) => view.webContents === evento.sender)));
+    const estado = estadoDe(evento.sender);
     if (estado) fn(estado, ...args);
   };
+  implantacao.registrar({ estadoDe, lerCodigoNoEmail, abrirNoCardapio });
   ipcMain.on('loja:pronta', daLoja((estado) => atualizar(estado)));
   ipcMain.on('loja:secao', daLoja((estado, id) => mostrar(estado, id)));
   ipcMain.on('loja:voltar', daLoja((estado) => { const wc = estado.secoes[estado.atual].view.webContents; if (wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack(); }));
