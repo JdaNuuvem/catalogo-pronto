@@ -112,8 +112,8 @@ $('atualizar').onclick = async () => { $('atualizar').disabled = true; try { awa
     document.dispatchEvent(new CustomEvent('catalogo-perfil'));
     if (!usuario.admin && usuario.papel !== 'atendente') { location.replace('/'); return; }
     document.body.classList.toggle('admin',usuario.admin);
-    $('tituloPagina').textContent = usuario.admin ? 'Clientes e equipe' : 'Minha carteira';
-    $('identidade').textContent = usuario.admin ? 'Toda a operação, com vencimentos e responsáveis' : 'Clientes vinculados a você';
+    $('tituloPagina').textContent = usuario.admin ? 'Cadastro e equipe' : 'Minha carteira';
+    $('identidade').textContent = usuario.admin ? 'Visão de toda a operação: vencimentos e responsáveis' : 'Sua carteira de clientes';
     if (!usuario.admin) { $('tituloCarteira').textContent = 'Meus clientes'; $('rotuloParte').textContent = 'Sua parte na implantação'; }
     await carregar();
     const parametros=new URLSearchParams(location.search);

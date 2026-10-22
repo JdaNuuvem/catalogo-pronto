@@ -52,7 +52,7 @@ async function inicio(){
   <div class="cartao"><h2>Cobranças vencidas ou de hoje</h2>${tabela(['Cliente','Componente','Falta receber'],vencidas.slice(0,10).map(c=>`<tr><td>${esc(c.cliente)}</td><td><a href="#cobrancas">${esc(c.descricao)}</a></td><td>${brl(c.pendente)}</td></tr>`))}</div>`;
 }
 export async function renderizar(){
-  const aba=location.hash.slice(1)||'inicio';document.querySelectorAll('aside a').forEach(a=>a.classList.toggle('ativo',a.hash==='#'+aba));
+  const aba=location.hash.slice(1)||'inicio';
   const fichaAberta=aba.startsWith('cliente-');
   const telas={inicio,clientes,implantacoes,cobrancas,financeiro,repasses,tarefas,configuracoes,'lojas-novas':onboarding};
   if(!usuario.admin&&['financeiro','configuracoes'].includes(aba)){location.hash='inicio';return;}
@@ -71,7 +71,8 @@ document.addEventListener('casca-senha',()=>dialogo('Alterar minha senha',[campo
 window.addEventListener('hashchange',()=>renderizar().then(()=>window.scrollTo({top:0,left:0,behavior:'auto'})).catch(e=>aviso(e.message)));
 (async()=>{try{
   usuario=await api('/api/eu');if(!usuario.admin&&usuario.papel!=='atendente'){location.replace('/');return;}
-  document.body.classList.toggle('admin',usuario.admin);document.body.classList.add('pronto');
+  document.body.classList.toggle('admin',usuario.admin);
   dados=await api('/api/gestao');$('inicio').value=dados.inicio;$('fim').value=dados.fim;await renderizar();
   if(new URLSearchParams(location.search).get('orientacao')==='cadastro')window.scrollTo({top:0,left:0,behavior:'auto'});
+  if(new URLSearchParams(location.search).has('senha')){const url=new URL(location.href);url.searchParams.delete('senha');history.replaceState(null,'',url);document.dispatchEvent(new CustomEvent('casca-senha'));}
 }catch(e){aviso(e.message);}})();

@@ -1,3 +1,61 @@
-.onboarding-intro{background:#fff;border:1px solid var(--linha);border-left:4px solid var(--acento);padding:20px;border-radius:10px;margin-bottom:20px}.onboarding-intro>p:first-child{margin-top:0}.onboarding-intro label{max-width:600px}.onboarding-progresso{margin-top:16px;color:var(--suave);font-size:13px}.onboarding-progresso progress{display:block;width:100%;height:12px;accent-color:var(--acento);margin-top:6px}.onboarding-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;align-items:start}.onboarding-menu{display:flex;flex-direction:column;align-items:stretch;gap:7px}.onboarding-menu button{text-align:left;display:flex;align-items:flex-start;gap:10px;padding:12px;font-size:13px}.onboarding-menu button span{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#f1eee9;font-size:12px;font-weight:600}.onboarding-menu button[aria-current=step]{border-color:var(--acento);background:#fbf1ed;color:var(--acento)}.onboarding-menu button[aria-current=step] span{background:var(--acento);color:#fff}.onboarding-etapa{background:#fff;border:1px solid var(--linha);border-radius:10px;padding:26px;min-width:0}.onboarding-etapa h3{font-size:22px;margin:8px 0 10px;line-height:1.4}.onboarding-etapa h4{font-size:14px;margin:24px 0 10px}.onboarding-etapa li{padding-left:3px;margin-bottom:10px}.onboarding-etapa ol,.onboarding-etapa ul{padding-left:22px;color:#514b44;font-size:14px}.onboarding-link{padding:9px 12px;border:1px solid var(--linha);border-radius:7px;font-size:13px;text-decoration:none}.onboarding-link:hover{border-color:var(--acento);background:#fbf1ed}.onboarding-confirmacao{border-top:1px solid var(--linha);margin-top:24px;padding-top:18px}.onboarding-navegacao{display:flex;justify-content:space-between;gap:12px;margin-top:22px}.onboarding-navegacao button{font-size:13px}.onboarding-concluido{padding:14px;background:#eaf5ee;color:#2f6d46;border-radius:7px;margin-top:20px}
+.onboarding-intro{padding:22px;margin-bottom:20px}
+.onboarding-loja{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap}
+.onboarding-loja label{flex:1 1 320px;max-width:560px}
+.onboarding-total{display:flex;align-items:center;gap:12px}
+.onboarding-total strong{font-size:34px;line-height:1;letter-spacing:-1px;color:var(--acento)}
+.onboarding-total strong small{font-size:16px;color:var(--suave);letter-spacing:0}
+.onboarding-total span{font-size:12px;color:var(--suave);line-height:1.4}
+.onboarding-fases{list-style:none;padding:0;margin:20px 0 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.onboarding-fases li{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:13px}
+.onboarding-fases li b{font-weight:600}
+.onboarding-fases li span{color:var(--suave);font-variant-numeric:tabular-nums}
+.onboarding-fases li .roteiro-barra{grid-column:1/-1}
+.onboarding-fases li.atual{border-color:rgba(168,68,42,.35);background:rgba(255,255,255,.85)}
+.onboarding-fases li.feita b{color:#2f6d46}
+
+.onboarding-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:20px;align-items:start}
+.onboarding-menu{display:flex;flex-direction:column;gap:14px;position:sticky;top:20px}
+.onboarding-fase{display:flex;flex-direction:column;gap:5px}
+.onboarding-fase-titulo{font-size:10.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--suave);padding:0 4px 2px}
+.onboarding-menu button{text-align:left;display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:13px;background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.75);border-radius:12px}
+.onboarding-menu button span{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(35,32,28,.07);font-size:12px;font-weight:600}
+.onboarding-menu button.feita{color:var(--tinta-suave,#4a443d)}
+.onboarding-menu button.feita span{background:#2f6d46;color:#fff}
+.onboarding-menu button[aria-current=step]{border-color:rgba(168,68,42,.35);background:rgba(255,255,255,.92);color:var(--acento);font-weight:600;box-shadow:0 4px 14px rgba(168,68,42,.10)}
+.onboarding-menu button[aria-current=step] span{background:var(--acento);color:#fff}
+
+.onboarding-etapa{padding:28px;min-width:0}
+.onboarding-etapa .sobretitulo{font-size:11px;letter-spacing:1.2px;color:var(--acento);font-weight:600}
+.onboarding-etapa h3{font-size:24px;margin:8px 0 6px;line-height:1.3}
+.onboarding-quem{display:inline-block;margin:0 0 10px;padding:3px 10px;border-radius:999px;background:rgba(35,32,28,.06);font-size:12px;color:var(--tinta-suave,#4a443d)}
+.onboarding-etapa h4{font-size:13px;margin:24px 0 10px;text-transform:uppercase;letter-spacing:.8px;color:var(--suave)}
+.onboarding-etapa li{padding-left:3px;margin-bottom:10px}
+.onboarding-etapa ol{padding-left:22px;color:#3f3a34;font-size:14px}
+.onboarding-etapa .acoes-linha{margin-top:6px}
+.onboarding-checklist{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.onboarding-checklist li{margin:0;padding:0}
+.onboarding-checklist label{display:flex;align-items:flex-start;gap:11px;padding:12px 14px;border-radius:12px;cursor:pointer;font-size:14px;color:var(--tinta);
+  background:rgba(255,255,255,.6);border:1px solid rgba(35,32,28,.08);transition:background .15s,border-color .15s}
+.onboarding-checklist label:hover{background:rgba(255,255,255,.9)}
+.onboarding-checklist label.marcado{background:rgba(234,245,238,.85);border-color:rgba(47,109,70,.25)}
+.onboarding-checklist label.marcado span{color:#2f6d46}
+.onboarding-checklist input{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:#2f6d46}
+.onboarding-checklist input:disabled+span{color:var(--suave)}
+.onboarding-confirmacao{border-top:1px solid var(--linha);margin-top:24px;padding-top:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.onboarding-confirmacao p{width:100%;margin:0}
+.onboarding-navegacao{display:flex;justify-content:space-between;gap:12px;margin-top:22px}
+.onboarding-navegacao button{font-size:13px}
+.onboarding-concluido{padding:14px;background:rgba(234,245,238,.9);color:#2f6d46;margin-top:20px}
 .onboarding-seletor{display:none}
-@media(max-width:1150px){.onboarding-layout{grid-template-columns:220px minmax(0,1fr)}}@media(max-width:800px){.onboarding-layout{grid-template-columns:minmax(0,1fr)}.onboarding-menu{display:none}.onboarding-seletor{display:block}.onboarding-etapa{padding:18px}.onboarding-etapa h3{font-size:19px}}
+
+/* Barra curta do roteiro em listas, quadros e fichas. */
+.roteiro-barra{height:6px;border-radius:999px;background:rgba(35,32,28,.08);overflow:hidden}
+.roteiro-barra i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#d9714f,#a8442a)}
+.roteiro-mini{display:grid;gap:5px;min-width:150px;margin-top:6px}
+.roteiro-mini span{font-size:12px;color:var(--suave)}
+.roteiro-mini a{text-decoration:none}
+.roteiro-mini a:hover{text-decoration:underline}
+
+@media(max-width:1150px){.onboarding-layout{grid-template-columns:230px minmax(0,1fr)}.onboarding-fases{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:800px){.onboarding-layout{grid-template-columns:minmax(0,1fr)}.onboarding-menu{display:none}.onboarding-seletor{display:block}.onboarding-etapa{padding:18px}.onboarding-etapa h3{font-size:20px}}
+@media(max-width:500px){.onboarding-fases{grid-template-columns:1fr}}

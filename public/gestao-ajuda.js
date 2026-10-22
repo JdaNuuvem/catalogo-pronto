@@ -6,7 +6,7 @@ const telas={
     proximo:['clientes','Abrir carteira de clientes']},
   clientes:{objetivo:'Esta é a lista das lojas atendidas. Abra a ficha de uma loja para encontrar suas fotos, pendências, cobranças e histórico.',
     passos:['Se a loja ainda não estiver na lista, use Cadastrar cliente e escolha o atendente responsável.','Busque a loja e clique em Abrir ficha para trabalhar nesse cliente.','Na ficha, atualize o contato e acompanhe a implantação, os materiais e o suporte.'],
-    termos:[['Cadastrar cliente','O administrador usa Clientes e equipe para cadastrar a loja e escolher o atendente responsável.'],['Ativos e arquivados','Clientes arquivados mantêm o histórico. A ficha permite reativá-los; os contratos encerrados precisam ser cadastrados novamente.']],
+    termos:[['Cadastrar cliente','O administrador usa Cadastro e equipe para cadastrar a loja e escolher o atendente responsável.'],['Ativos e arquivados','Clientes arquivados mantêm o histórico. A ficha permite reativá-los; os contratos encerrados precisam ser cadastrados novamente.']],
     proximo:['implantacoes','Acompanhar as implantações']},
   implantacoes:{objetivo:'Use este quadro para acompanhar a montagem de cada loja, desde o recebimento dos dados até a entrega ao cliente.',
     passos:['Encontre a loja na etapa em que ela está trabalhando.','Clique em Atualizar etapa quando concluir uma parte do serviço.','Preencha o prazo e escreva o que falta, como fotos, preços ou aprovação do cliente.'],
