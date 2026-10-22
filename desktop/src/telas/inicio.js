@@ -12,7 +12,7 @@ let lojas = [], lembretes = [], filtro = 'todas', vista = 'hoje';
 document.querySelectorAll('[data-icone]').forEach((el) => { el.innerHTML = window.icone(el.dataset.icone); });
 function avisar(texto) { $('aviso').textContent = texto || ''; $('aviso').hidden = !texto; }
 function mostrarEntrar(servidor, aviso) {
-  $('app').hidden = true; $('telaEntrar').hidden = false;
+  $('app').hidden = true; $('telaBloqueio').hidden = true; $('telaEntrar').hidden = false;
   if (servidor) $('servidor').value = servidor;
   $('erroEntrar').textContent = aviso || ''; $('email').focus();
 }
@@ -83,13 +83,19 @@ async function carregar() {
   const [rl, rm] = await Promise.all([window.catalogo.lojas(), window.catalogo.lembretes()]);
   for (const r of [rl, rm]) {
     if (r.expirou) return mostrarEntrar(null, 'Sua sessão terminou. Entre novamente.');
+    if (r.bloqueado) return mostrarBloqueio();
     if (r.erro) return avisar(r.erro);
   }
   avisar(''); lojas = rl.lojas; lembretes = rm.lembretes;
   desenharLojas(); desenharHoje();
 }
+function mostrarBloqueio() {
+  $('app').hidden = true; $('telaEntrar').hidden = true; $('telaBloqueio').hidden = false;
+  $('nomeBloqueio').textContent = $('nome').textContent; $('erroBloqueio').textContent = ''; $('senhaBloqueio').value = ''; $('senhaBloqueio').focus();
+}
 async function mostrarApp(sessao) {
-  $('telaEntrar').hidden = true; $('app').hidden = false;
+  if (sessao.bloqueado) { $('nome').textContent = sessao.nome || ''; return mostrarBloqueio(); }
+  $('telaEntrar').hidden = true; $('telaBloqueio').hidden = true; $('app').hidden = false;
   $('nome').textContent = sessao.nome || ''; $('papel').textContent = PAPEIS[sessao.papel] || '';
   $('dataHoje').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   if (sessao.aviso) avisar(sessao.aviso);
@@ -126,6 +132,17 @@ $('busca').addEventListener('input', desenharLojas);
 $('btnPainel').addEventListener('click', () => window.catalogo.abrirPainel());
 $('btnSair').addEventListener('click', async () => { await window.catalogo.sair(); lojas = []; lembretes = []; mostrarEntrar(); });
 window.catalogo.aoExpirar(() => mostrarEntrar(null, 'Sua sessão terminou. Entre novamente.'));
+window.catalogo.aoBloquear(mostrarBloqueio);
+$('formBloqueio').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('btnDesbloquear').disabled = true;
+  const r = await window.catalogo.desbloquear($('senhaBloqueio').value);
+  $('btnDesbloquear').disabled = false; $('senhaBloqueio').value = '';
+  if (r.expirou) return mostrarEntrar(null, r.erro);
+  if (r.erro) { $('erroBloqueio').textContent = r.erro; return; }
+  $('telaBloqueio').hidden = true; $('app').hidden = false; carregar();
+});
+$('btnTrocarConta').addEventListener('click', async () => { await window.catalogo.sair(); lojas = []; lembretes = []; mostrarEntrar(); });
 
 (async () => {
   const sessao = await window.catalogo.sessao();

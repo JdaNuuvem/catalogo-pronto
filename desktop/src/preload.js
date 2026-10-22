@@ -10,4 +10,6 @@ contextBridge.exposeInMainWorld('catalogo', {
   abrirLoja: (id) => ipcRenderer.invoke('abrir-loja', id),
   abrirPainel: () => ipcRenderer.invoke('abrir-painel'),
   aoExpirar: (fn) => ipcRenderer.on('sessao-expirada', () => fn()),
+  desbloquear: (senha) => ipcRenderer.invoke('desbloquear', senha),
+  aoBloquear: (fn) => ipcRenderer.on('bloqueado', () => fn()),
 });

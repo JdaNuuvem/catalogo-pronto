@@ -23,6 +23,18 @@
   </form>
 </section>
 
+<section id="telaBloqueio" class="tela-entrar" hidden>
+  <form id="formBloqueio" class="caixa vidro">
+    <div class="marca"><span class="selo">CP</span>Catálogo Pronto</div>
+    <h1>App bloqueado</h1>
+    <p class="suave">Ficou um tempo sem uso. Digite a senha de <b id="nomeBloqueio"></b> para voltar às lojas abertas.</p>
+    <label>Senha<input id="senhaBloqueio" type="password" autocomplete="current-password" required></label>
+    <p class="erro" id="erroBloqueio" role="alert"></p>
+    <button class="principal largo" type="submit" id="btnDesbloquear">Desbloquear</button>
+    <button class="largo trocar" type="button" id="btnTrocarConta">Entrar com outra conta</button>
+  </form>
+</section>
+
 <div id="app" class="app" hidden>
   <aside class="menu">
     <div class="marca"><span class="selo">CP</span>Catálogo Pronto</div>

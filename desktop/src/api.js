@@ -76,6 +76,7 @@ class Api {
     return (await this.pedir(`/api/app/lojas/${Number(lojaId)}/implantacao/${encodeURIComponent(passo)}`, { metodo: 'PUT', corpo: { estado } })).passos;
   }
   ficha(lojaId) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/ficha`); }
+  linkFicha(lojaId) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/ficha/link`, { metodo: 'POST', corpo: {} }); }
   async sugerirAdicionais(lojaId, produtos) {
     return (await this.pedir(`/api/app/lojas/${Number(lojaId)}/adicionais/sugerir`, { metodo: 'POST', corpo: { produtos } })).grupos;
   }
@@ -115,10 +116,28 @@ class Api {
     return (await this.bruto(`/api/app/lojas/${Number(lojaId)}/analisar`, { method: 'POST', body: form })).json();
   }
 
+  /** Fotos de um cardapio impresso: a IA cria os produtos (sem foto) no lote. */
+  async impresso(lojaId, fotos) {
+    const form = new FormData();
+    for (const f of fotos) form.append('fotos', new Blob([f.dados], { type: f.tipo }), f.nome);
+    return (await this.bruto(`/api/app/lojas/${Number(lojaId)}/impresso`, { method: 'POST', body: form })).json();
+  }
+  /** Texto e imagens de uma pagina de cardapio de outro site. */
+  importar(lojaId, { texto, imagens }) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/importar`, { metodo: 'POST', corpo: { texto, imagens } }); }
+  async trocarFoto(lojaId, item, foto) {
+    const form = new FormData();
+    form.append('foto', new Blob([foto.dados], { type: foto.tipo }), foto.nome);
+    return (await this.bruto(`/api/app/lojas/${Number(lojaId)}/lote/foto/${encodeURIComponent(item)}`, { method: 'POST', body: form })).json();
+  }
+
   /** Foto de um item (previewUrl do painel vem como /api/foto/...). */
   async foto(lojaId, previewUrl) {
     const caminho = String(previewUrl).replace(/^\/api\/foto\//, `/api/app/lojas/${Number(lojaId)}/foto/`);
     return Buffer.from(await (await this.bruto(caminho)).arrayBuffer());
+  }
+  /** Logo ou capa no formato que o Cardapio.ai aceita (gerado pelo painel). */
+  async imagemFichaTratada(lojaId, tipo) {
+    return Buffer.from(await (await this.bruto(`/api/app/lojas/${Number(lojaId)}/ficha/imagem/${encodeURIComponent(tipo)}/tratada`)).arrayBuffer());
   }
   async imagemFicha(lojaId, tipo) {
     return Buffer.from(await (await this.bruto(`/api/app/lojas/${Number(lojaId)}/ficha/imagem/${encodeURIComponent(tipo)}`)).arrayBuffer());
@@ -140,6 +159,8 @@ class Api {
       }
     }
   }
+
+  desbloquear(senha) { return this.pedir('/api/app/desbloquear', { metodo: 'POST', corpo: { senha } }); }
 
   async sair() {
     try { await this.pedir('/api/app/sair', { metodo: 'POST', corpo: {} }); } finally { this.token = null; }

@@ -25,7 +25,11 @@ const SECOES = [
   { id: 'email', rotulo: 'E-mail', web: true, tem: 'tem_email' },
   { id: 'implantacao', rotulo: 'Implantação', pagina: 'implantacao.html' },
   { id: 'conferencia', rotulo: 'Conferência', pagina: 'conferencia.html' },
+  // Formulario da ficha do proprio painel, autenticado pelo app (ver prepararFicha).
+  { id: 'ficha', rotulo: 'Ficha', remota: true },
 ];
+// Ordem do menu (as views sao criadas na ordem de SECOES).
+const MENU = ['resumo', 'implantacao', 'ficha', 'cardapio', 'email', 'conferencia'];
 const abertas = new Map();
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 const vivo = (wc) => wc && !wc.isDestroyed();
@@ -38,8 +42,8 @@ function enviarMoldura(estado) {
   const atual = SECOES.find((s) => s.id === estado.atual), wc = estado.secoes[estado.atual]?.view.webContents;
   estado.win.webContents.send('loja:moldura', {
     nome: estado.loja.nome, atual: estado.atual, aviso: estado.aviso, plano: estado.plano || estado.loja.plano || null,
-    secoes: SECOES.map((s) => ({ id: s.id, rotulo: s.rotulo, falta: !!(s.web && !estado.loja[s.tem]), alerta: alertaDaSecao(estado, s.id) })),
-    navegador: !!atual?.web, voltar: !!(atual?.web && vivo(wc) && wc.navigationHistory.canGoBack()), titulo: atual?.web && vivo(wc) ? wc.getTitle() : '',
+    secoes: MENU.map((id) => SECOES.find((s) => s.id === id)).map((s) => ({ id: s.id, rotulo: s.rotulo, falta: !!(s.web && !estado.loja[s.tem]), alerta: alertaDaSecao(estado, s.id) })),
+    navegador: !!(atual?.web || atual?.remota), voltar: !!(atual?.web && vivo(wc) && wc.navigationHistory.canGoBack()), titulo: atual?.web && vivo(wc) ? wc.getTitle() : '',
     conferindo: !!estado.conferindo, podeConferir: !!estado.loja.tem_cardapio,
   });
 }
@@ -60,15 +64,37 @@ function avisar(estado, texto) { estado.aviso = texto; enviarMoldura(estado); }
 function posicionar(estado) {
   const [largura, altura] = estado.win.getContentSize();
   for (const [id, { view }] of Object.entries(estado.secoes)) {
-    const m = SECOES.find((s) => s.id === id).web ? MARGEM_SITE : 0;
+    const s = SECOES.find((x) => x.id === id), m = s.web || s.remota ? MARGEM_SITE : 0;
     view.setBounds({ x: LARGURA_MENU + m, y: ALTURA_TOPO + m, width: Math.max(0, largura - LARGURA_MENU - 2 * m), height: Math.max(0, altura - ALTURA_TOPO - 2 * m) });
   }
 }
 function mostrar(estado, id) {
   if (!estado.secoes[id]) return;
+  const antes = estado.atual;
   estado.atual = id;
   for (const [secao, { view }] of Object.entries(estado.secoes)) view.setVisible(secao === id);
   atualizar(estado);
+  // Voltando a Implantacao, a pagina rele ficha e lote (podem ter mudado na secao Ficha).
+  const wc = estado.secoes.implantacao?.view.webContents;
+  if (id === 'implantacao' && antes !== id && vivo(wc)) wc.send('implantacao:mostrada');
+}
+
+/**
+ * Secao Ficha: o formulario do painel num perfil separado e sem cookies. O app poe o
+ * token so nos pedidos da ficha desta loja; a pagina nunca ve o token.
+ */
+function prepararFicha(estado) {
+  const { view } = estado.secoes.ficha, wc = view.webContents, origem = estado.api.servidor;
+  const rotas = `${origem}/api/app/lojas/${estado.loja.id}/ficha`;
+  wc.session.webRequest.onBeforeSendHeaders({ urls: [`${origem}/*`] }, (detalhe, responder) => {
+    const cabecalhos = { ...detalhe.requestHeaders };
+    if (detalhe.url.startsWith(rotas) && estado.api.token) cabecalhos.Authorization = `Bearer ${estado.api.token}`;
+    responder({ requestHeaders: cabecalhos });
+  });
+  wc.setWindowOpenHandler(({ url }) => { if (/^https?:/i.test(url)) shell.openExternal(url); return { action: 'deny' }; });
+  wc.on('will-navigate', (e, url) => { if (!url.startsWith(`${origem}/ficha.html`)) { e.preventDefault(); if (/^https?:/i.test(url)) shell.openExternal(url); } });
+  wc.on('page-title-updated', () => enviarMoldura(estado));
+  wc.loadURL(`${origem}/ficha.html?loja=${estado.loja.id}&app=1`);
 }
 
 // ------------------------------------------------------------------ login automatico
@@ -259,12 +285,14 @@ async function abrir({ loja, api, aoExpirar }) {
   for (const s of SECOES) {
     const view = new WebContentsView({ webPreferences: s.web
       ? { session: perfil, contextIsolation: true, sandbox: true, nodeIntegration: false }
-      : { preload: path.join(__dirname, 'preload-secao.js'), contextIsolation: true, sandbox: true, nodeIntegration: false } });
-    view.setBackgroundColor(s.web ? '#ffffff' : '#f4efe9');
-    if (s.web) view.setBorderRadius(14);
+      : s.remota ? { session: session.fromPartition(`ficha-loja-${loja.id}`), contextIsolation: true, sandbox: true, nodeIntegration: false }
+        : { preload: path.join(__dirname, 'preload-secao.js'), contextIsolation: true, sandbox: true, nodeIntegration: false } });
+    view.setBackgroundColor(s.web || s.remota ? '#ffffff' : '#f4efe9');
+    if (s.web || s.remota) view.setBorderRadius(14);
     win.contentView.addChildView(view);
     estado.secoes[s.id] = { view, tentativas: 0, inicio: null };
     if (s.web) prepararNavegador(estado, s.id);
+    else if (s.remota) prepararFicha(estado);
     else {
       view.webContents.on('did-finish-load', () => enviarDados(estado));
       view.webContents.loadFile(path.join(__dirname, 'telas', s.pagina));
@@ -313,7 +341,7 @@ function registrarCanais() {
     if (acao === 'abrir-email') mostrar(estado, 'email');
     if (acao === 'abrir-conferencia') mostrar(estado, 'conferencia');
     // Paginas do painel abrem no navegador do computador (o painel pede o login dele).
-    if (acao === 'abrir-ficha') shell.openExternal(`${estado.api.servidor}/ficha.html?loja=${estado.loja.id}`);
+    if (acao === 'abrir-ficha') mostrar(estado, 'ficha');
     if (acao === 'abrir-loja-painel') shell.openExternal(`${estado.api.servidor}/gestao.html#cliente-${estado.loja.id}`);
     if (acao === 'abrir-roteiro') shell.openExternal(`${estado.api.servidor}/gestao.html?loja=${estado.loja.id}#lojas-novas`);
     if (acao === 'abrir-cardapio-publico' && /^https?:\/\//.test(estado.loja.link || '')) shell.openExternal(estado.loja.link);
@@ -321,5 +349,8 @@ function registrarCanais() {
 }
 
 function fecharTodas() { for (const { win } of abertas.values()) if (!win.isDestroyed()) win.close(); }
+/** App bloqueado: as janelas das lojas somem da tela (e da barra de tarefas) ate desbloquear. */
+function esconderTodas() { for (const { win } of abertas.values()) if (!win.isDestroyed()) win.hide(); }
+function mostrarTodas() { for (const { win } of abertas.values()) if (!win.isDestroyed()) win.show(); }
 
-module.exports = { abrir, registrarCanais, fecharTodas, SECOES };
+module.exports = { abrir, registrarCanais, fecharTodas, esconderTodas, mostrarTodas, SECOES };

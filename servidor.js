@@ -17,6 +17,7 @@ const sessao = require('./lib/sessao');
 const cardapio = require('./lib/cardapio');
 const ia = require('./lib/ia');
 const imagem = require('./lib/imagem');
+const importar = require('./lib/importar');
 const { Fila } = require('./lib/fila');
 
 const RAIZ = __dirname;
@@ -176,7 +177,7 @@ app.get('/api/gestao/clientes/:id/ambiente',exigirLogin,(req,res)=>{
 
 // O app desktop usa as mesmas rotas de produtos, com o token dele e so nas lojas da carteira.
 app.use('/api',(req,res,next)=>{
-  const m=req.url.match(/^\/app\/lojas\/(\d+)(\/(?:analisar|lote|historico|foto|validar|publicar|mfa|eventos)(?:[/?].*)?)$/);
+  const m=req.url.match(/^\/app\/lojas\/(\d+)(\/(?:analisar|impresso|importar|lote|historico|foto|validar|publicar|mfa|eventos)(?:[/?].*)?)$/);
   if(!m)return next();
   exigirApp(req,res,()=>{
     const u=req.loja,c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(Number(m[1]));
@@ -186,7 +187,7 @@ app.use('/api',(req,res,next)=>{
 });
 
 app.use('/api',(req,res,next)=>{
-  const m=req.url.match(/^\/lojas\/(\d+)(\/(?:analisar|lote|historico|foto|validar|publicar|mfa|eventos)(?:[/?].*)?)$/);
+  const m=req.url.match(/^\/lojas\/(\d+)(\/(?:analisar|impresso|importar|lote|historico|foto|validar|publicar|mfa|eventos)(?:[/?].*)?)$/);
   if(!m)return next();
   exigirLogin(req,res,()=>{
     const u=req.usuario,c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(Number(m[1]));
@@ -232,6 +233,56 @@ app.post('/api/analisar', exigirLogin, upload.array('fotos', MAXIMO_FOTOS), asyn
   res.json({ loteId: lote.id, produtos });
 });
 
+/** Cardapio impresso: a IA le as fotos do cardapio e cada produto entra no lote sem foto. */
+app.post('/api/impresso', exigirLogin, upload.array('fotos', 6), async (req, res) => {
+  if (!req.files || !req.files.length) return res.status(400).json({ erro: 'nenhuma foto recebida' });
+  try {
+    const lidos = await ia.lerCardapioImpresso(req.files.map((f) => ({ nome: f.originalname, caminho: f.path })), configIa());
+    if (!lidos.length) return res.status(422).json({ erro: 'nao achei produtos nessas fotos' });
+    const lote = banco.garantirLote(db, req.loja.id);
+    banco.adicionarItens(db, lote.id, lidos.map((p) => importar.paraLinha(p, importar.nomeSemFoto(), 'cardapio impresso')));
+    res.json({ total: lidos.length });
+  } catch (e) {
+    res.status(502).json({ erro: `a IA nao conseguiu ler o cardapio: ${e.message}` });
+  } finally {
+    req.files.forEach((f) => fs.rm(f.path, { force: true }, () => {}));
+  }
+});
+
+/**
+ * Cardapio de outro site: o app manda o texto e as imagens da pagina; a IA monta os
+ * produtos e o servidor baixa a foto de cada um.
+ */
+app.post('/api/importar', exigirLogin, async (req, res) => {
+  const texto = String(req.body?.texto || '').slice(0, 300000);
+  const imagens = (Array.isArray(req.body?.imagens) ? req.body.imagens : []).slice(0, 400)
+    .map((im) => ({ i: Number(im?.i), src: String(im?.src || '').slice(0, 2000), alt: String(im?.alt || ''), perto: String(im?.perto || '') }))
+    .filter((im) => Number.isInteger(im.i) && /^https?:\/\//.test(im.src));
+  if (texto.length < 40) return res.status(400).json({ erro: 'a pagina veio sem texto de cardapio' });
+  let lidos;
+  try { lidos = await ia.extrairCardapio({ texto, imagens }, configIa()); } catch (e) { return res.status(502).json({ erro: `a IA nao conseguiu ler a pagina: ${e.message}` }); }
+  if (!lidos.length) return res.status(422).json({ erro: 'nao achei produtos nessa pagina' });
+  const pasta = path.join(PASTA_ENVIOS, String(req.loja.id));
+  const permitirLocal = process.env.NODE_ENV !== 'production' && process.env.IMPORTAR_PERMITIR_LOCAL === '1';
+  const fotos = await importar.baixarTodas(lidos.map((p) => imagens.find((im) => im.i === p.imagem)?.src || null),
+    (src) => importar.baixarImagem(src, { permitirLocal }));
+  const linhas = lidos.map((p, i) => importar.paraLinha(p, fotos[i] ? importar.guardarFoto(pasta, fotos[i], p.titulo) : importar.nomeSemFoto(), 'importado de link'));
+  const lote = banco.garantirLote(db, req.loja.id);
+  banco.adicionarItens(db, lote.id, linhas);
+  res.json({ total: lidos.length, comFoto: fotos.filter(Boolean).length });
+});
+
+/** Poe (ou troca) a foto de um item do lote que ainda nao foi publicado. */
+app.post('/api/lote/foto/:arquivo', exigirLogin, upload.single('foto'), (req, res) => {
+  const lote = banco.loteAberto(db, req.loja.id);
+  if (!req.file) return res.status(400).json({ erro: 'nenhuma foto recebida' });
+  const novo = path.basename(req.file.path);
+  const mudou = lote && db.prepare("UPDATE itens SET arquivo=?, nome_original=? WHERE lote_id=? AND arquivo=? AND estado<>'enviado'")
+    .run(novo, req.file.originalname, lote.id, String(req.params.arquivo)).changes;
+  if (!mudou) { fs.rm(req.file.path, { force: true }, () => {}); return res.status(404).json({ erro: 'item nao encontrado no lote' }); }
+  res.json({ id: novo, previewUrl: `/api/foto/${encodeURIComponent(novo)}` });
+});
+
 function montarProduto(lojaId, imagem, item, erroIa) {
   const arquivo = path.basename(imagem.caminho);
   return {
@@ -264,13 +315,15 @@ function paraLinha(p) {
 
 /** Linha da tabela itens -> ficha da tela. */
 function paraFicha(linha, lojaId) {
-  const caminho = lojaId ? caminhoDaFoto(lojaId, linha.arquivo) : null;
+  const semFoto = importar.semFoto(linha.arquivo);
+  const caminho = lojaId && !semFoto ? caminhoDaFoto(lojaId, linha.arquivo) : null;
   const tratada = !!caminho && imagem.foiTratada(caminho);
   return {
     id: linha.arquivo,
     arquivo: linha.nome_original || linha.arquivo,
     // A versao muda quando a foto e tratada ou desfeita, para a tela nao mostrar a do cache.
-    previewUrl: `/api/foto/${encodeURIComponent(linha.arquivo)}${tratada ? `?v=${Math.round(fs.statSync(caminho).mtimeMs)}` : ''}`,
+    previewUrl: semFoto ? null : `/api/foto/${encodeURIComponent(linha.arquivo)}${tratada ? `?v=${Math.round(fs.statSync(caminho).mtimeMs)}` : ''}`,
+    semFoto,
     tratada,
     titulo: linha.titulo,
     descricao: linha.descricao,
@@ -365,7 +418,7 @@ app.get('/api/foto/:arquivo', exigirLogin, (req, res) => {
 function prepararProdutos(lojaId, lista) {
   return lista.map((p) => ({
     ...p,
-    caminhoImagem: p.id ? caminhoDaFoto(lojaId, p.id) : null,
+    caminhoImagem: p.id && !importar.semFoto(p.id) ? caminhoDaFoto(lojaId, p.id) : null,
   }));
 }
 

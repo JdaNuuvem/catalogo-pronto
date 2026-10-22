@@ -8,7 +8,9 @@ const $ = (id) => document.getElementById(id);
 const token = new URLSearchParams(location.hash.slice(1)).get('t');
 const lojaId = Number(new URLSearchParams(location.search).get('loja')) || null;
 const equipe = !token && !!lojaId;
-const base = equipe ? `/api/gestao/clientes/${lojaId}/ficha` : '/api/ficha-publica';
+// Dentro do app desktop (?app=1) o proprio app poe a autorizacao nos pedidos da ficha.
+const noApp = equipe && new URLSearchParams(location.search).get('app') === '1';
+const base = noApp ? `/api/app/lojas/${lojaId}/ficha` : equipe ? `/api/gestao/clientes/${lojaId}/ficha` : '/api/ficha-publica';
 const DIAS = [['seg', 'Segunda'], ['ter', 'Terça'], ['qua', 'Quarta'], ['qui', 'Quinta'], ['sex', 'Sexta'], ['sab', 'Sábado'], ['dom', 'Domingo']];
 const SECOES = { loja: 'Loja', endereco: 'Endereço', marca: 'Marca', horarios: 'Horários', entrega: 'Entrega', pagamento: 'Pagamento', produtos: 'Produtos', adicionais: 'Adicionais' };
 const form = $('formFicha');
@@ -19,6 +21,7 @@ async function pedir(caminho = '', { metodo = 'GET', corpo, arquivo } = {}) {
   if (arquivo) { body = new FormData(); body.append('imagem', arquivo); }
   else if (corpo) { body = JSON.stringify(corpo); cabecalhos['content-type'] = 'application/json'; }
   const r = await fetch(base + caminho, { method: metodo, headers: cabecalhos, body });
+  if (r.status === 401 && noApp) throw new Error('Sua sessão no app terminou. Entre novamente.');
   if (r.status === 401 && equipe) { location.replace('/'); throw new Error('Entre novamente.'); }
   const dados = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(dados.erro || 'Não foi possível salvar agora.'), { erros: dados.erros });
@@ -195,7 +198,7 @@ $('gerarLink').addEventListener('click', async () => {
   try {
     const r = await pedir();
     if (equipe) {
-      $('avisoEquipe').hidden = false; $('voltarLoja').href = `/gestao.html#cliente-${lojaId}`;
+      $('avisoEquipe').hidden = false; $('voltarLoja').href = `/gestao.html#cliente-${lojaId}`; $('voltarLoja').hidden = noApp;
       $('explicacao').textContent = 'Você está editando a ficha pela equipe. O cliente também pode preencher pelo link.';
     } else {
       $('nomeLoja').textContent = r.loja ? `· ${r.loja}` : ''; $('enviar').hidden = false;

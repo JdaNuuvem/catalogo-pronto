@@ -84,3 +84,16 @@ body{overflow:hidden}
 .aviso-flutuante{position:fixed;right:20px;bottom:20px;max-width:420px;margin:0;padding:10px 14px;border-radius:12px;background:#23201c;color:#fff;font-size:13px;box-shadow:var(--sombra)}
 .aviso-flutuante.ruim{background:#a32f22}
 .ferramentas .espaco{flex:1}
+.link-ficha{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:12px;align-items:center}
+.link-ficha small{grid-column:1/-1;color:var(--suave);font-size:12px}
+.kit{display:flex;gap:18px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.kit .qr img{width:180px;height:180px;border-radius:12px;border:1px solid var(--linha);background:#fff}
+.acoes-passo.coluna{flex-direction:column;align-items:stretch}
+.mensagem{width:100%;font:inherit;font-size:13.5px;padding:10px 12px;border-radius:12px;border:1px solid rgba(35,32,28,.14);background:rgba(255,255,255,.85);resize:vertical;margin-bottom:8px}
+.origens{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:12px}
+.origem{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:14px;background:rgba(255,255,255,.6);border:1px solid var(--linha)}
+.origem small{color:var(--suave);font-size:12px;flex:1}
+.origem button{align-self:flex-start}
+.linha-link{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}
+.linha-link input{padding:7px 10px;font-size:13px}
+.sem-foto{width:110px;height:110px;border-radius:10px;border:1px dashed rgba(35,32,28,.25);display:grid;place-items:center;font-size:12px;color:var(--suave);background:rgba(255,255,255,.5)}

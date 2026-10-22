@@ -16,8 +16,19 @@
   "build": {
     "appId": "br.com.catalogopronto.desktop",
     "productName": "Catálogo Pronto",
-    "files": ["src/**/*", "package.json"],
-    "win": { "target": "nsis" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
   }
 }

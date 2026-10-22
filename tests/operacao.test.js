@@ -431,6 +431,17 @@ test('app monta a implantacao: passos, fotos dos produtos tratadas e adicionais 
   assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/foto/${encodeURIComponent(item.id)}/desfazer`,{method:'POST'})).dados.ok,true);
   assert.equal((await sharp(await baixar()).metadata()).width,600);
   assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/lote`)).dados.produtos[0].tratada,false);
+  // Trocar a foto de um item do lote; importar e cardapio impresso sem IA explicam o problema.
+  const outra=new FormData();outra.append('foto',new Blob([foto],{type:'image/png'}),'queijo-novo.png');
+  const trocada=await app(tokenA,`/api/app/lojas/${clienteA}/lote/foto/${encodeURIComponent(item.id)}`,{method:'POST',form:outra});
+  assert.equal(trocada.status,200);assert.notEqual(trocada.dados.id,item.id);
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/lote`)).dados.produtos[0].id,trocada.dados.id);
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/importar`,{method:'POST',body:{texto:'curto'}})).status,400);
+  const importacao=await app(tokenA,`/api/app/lojas/${clienteA}/importar`,{method:'POST',body:{texto:'X-Burguer R$ 29,90 pão, carne e queijo. Batata frita R$ 15,00',imagens:[]}});
+  assert.equal(importacao.status,502);assert.match(importacao.dados.erro,/IA/);
+  const menu=new FormData();menu.append('fotos',new Blob([foto],{type:'image/png'}),'cardapio.png');
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/impresso`,{method:'POST',form:menu})).status,502);
+  assert.equal((await app(tokenB,`/api/app/lojas/${clienteA}/importar`,{method:'POST',body:{texto:'x'.repeat(50)}})).status,403);
 
   // Adicionais: sem chave de IA a sugestao explica; grupos aprovados entram na ficha e o texto do cliente fica.
   await chamar(`/api/gestao/clientes/${clienteA}/ficha`,{cookie:cookieA,method:'PUT',body:{adicionais:{texto:'Bacon extra 4 reais'}}});

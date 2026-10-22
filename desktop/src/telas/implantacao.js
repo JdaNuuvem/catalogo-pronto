@@ -82,7 +82,10 @@ function conteudoDaFicha(id) {
     return `<section class="bloco vidro"><h2>Loja</h2>${dados([['Nome', l.nome], ['CPF ou CNPJ', l.documento], ['WhatsApp', telefone(l.telefone)], ['Pedido mínimo', reais(l.pedido_minimo)], ['Recado na loja', l.recado]])}</section>
       <section class="bloco vidro"><h2>Seções da ficha</h2>${dados(Object.entries(vista.completo).map(([s, ok]) => [PASSOS[s]?.titulo || 'Loja', ok ? '✓ completa' : 'falta preencher', false]))}
       <p class="dica">${vista.enviada_em ? `Enviada pelo cliente em ${vista.enviada_em.slice(0, 10).split('-').reverse().join('/')}.` : 'O cliente ainda não enviou a ficha.'}</p>
-      <div class="acoes-passo"><button type="button" data-acao-loja="abrir-ficha">Abrir a ficha no painel</button></div></section>
+      <div class="acoes-passo"><button type="button" class="principal" data-acao-loja="abrir-ficha">Preencher a ficha aqui</button>
+        <button type="button" id="btnLinkFicha">Gerar link para o cliente</button></div>
+      <div id="linkFicha" class="link-ficha" hidden><input id="linkFichaUrl" readonly><button type="button" id="btnCopiarLink">Copiar</button><button type="button" id="btnWhatsFicha">Mandar no WhatsApp</button>
+        <small>Gerar um link novo desativa o anterior. Vale por 30 dias.</small></div></section>
       ${f.observacoes ? `<section class="bloco vidro"><h2>Observações</h2><p class="texto-cliente">${escapar(f.observacoes)}</p></section>` : ''}`;
   }
   if (id === 'endereco') {
@@ -93,7 +96,11 @@ function conteudoDaFicha(id) {
   if (id === 'marca') {
     const m = f.marca;
     return `<section class="bloco vidro"><h2>Dados da ficha</h2>${dados([['Cor', m.cor]])}
-      <div class="imagens-marca">${['logo', 'capa'].map((t) => `<figure>${m[`${t}_material`] ? `<img data-imagem="${t}" alt="">` : '<span class="vazio-dado">não enviada</span>'}<figcaption>${t === 'logo' ? 'Logo' : 'Capa'}</figcaption></figure>`).join('')}</div></section>`;
+      <div class="imagens-marca">${['logo', 'capa'].map((t) => `<figure>${m[`${t}_material`] ? `<img data-imagem="${t}" alt="">` : '<span class="vazio-dado">não enviada</span>'}<figcaption>${t === 'logo' ? 'Logo' : 'Capa'} enviado pelo cliente</figcaption></figure>`).join('')}</div></section>
+    ${m.logo_material || m.capa_material ? `<section class="bloco vidro"><h2>Pronto para o Cardapio.ai</h2>
+      <p class="dica">Logo quadrado e capa larga, abaixo de 2MB. Salve e escolha o arquivo em "Alterar logo" e "Alterar foto de capa"; o enquadramento fino é no "Ajustar" do próprio Cardapio.ai.</p>
+      <div class="imagens-marca">${['logo', 'capa'].filter((t) => m[`${t}_material`]).map((t) => `<figure><img data-tratada="${t}" alt=""><figcaption>${t === 'logo' ? 'Logo 800×800' : 'Capa até 1920px'}</figcaption>
+        <button type="button" data-salvar-imagem="${t}">Salvar ${t === 'logo' ? 'logo' : 'capa'} no computador</button></figure>`).join('')}</div></section>` : ''}`;
   }
   if (id === 'horarios') {
     const h = f.horarios;
@@ -120,14 +127,19 @@ function conteudoDaFicha(id) {
 function produtosHtml() {
   const ps = lote.produtos, aprovados = ps.filter((p) => p.aprovado && p.estado !== 'enviado').length;
   const origem = vista.ficha.produtos;
-  return `<section class="bloco vidro"><h2>Fotos dos produtos</h2>
-      ${origem.origem ? `<p class="dica">Na ficha: ${origem.origem === 'link' ? `o cliente já vende em <b>${escapar(origem.link_cardapio)}</b>` : origem.origem === 'fotos' ? 'o cliente vai mandar fotos e preços' : 'começar com produtos de exemplo do ramo'}.</p>` : ''}
-      <div class="ferramentas">
-        <button type="button" class="principal" id="btnFotos" ${publicando ? 'disabled' : ''}>Adicionar fotos</button>
-        <label><input type="checkbox" id="tratarAuto" checked> Tirar o fundo e padronizar</label>
-        <span class="espaco"></span>
-        ${ps.length ? `<button type="button" id="btnDescartar" ${publicando ? 'disabled' : ''}>Descartar lote</button>` : ''}
+  const dis = publicando ? 'disabled' : '';
+  return `<section class="bloco vidro"><h2>Trazer os produtos</h2>
+      ${origem.origem ? `<p class="dica">Na ficha: ${origem.origem === 'link' ? 'o cliente já vende em outro cardápio digital' : origem.origem === 'fotos' ? 'o cliente vai mandar fotos e preços' : 'começar com produtos de exemplo do ramo'}.</p>` : ''}
+      <div class="origens">
+        <div class="origem"><b>Fotos dos produtos</b><small>A IA escreve título, descrição e categoria de cada foto.</small>
+          <button type="button" class="principal" id="btnFotos" ${dis}>Escolher fotos</button></div>
+        <div class="origem"><b>Cardápio impresso</b><small>Foto do cardápio, folheto ou tabela de preços. Cria os produtos com preço, sem foto.</small>
+          <button type="button" id="btnImpresso" ${dis}>Ler foto do cardápio</button></div>
+        <div class="origem"><b>Importar de um link</b><small>iFood, Anota Aí, Goomer ou outro cardápio online. Traz nome, preço, descrição e foto.</small>
+          <div class="linha-link"><input id="linkImportar" inputmode="url" placeholder="https://..." value="${escapar(origem.link_cardapio || '')}"><button type="button" id="btnImportar" ${dis}>Importar</button></div></div>
       </div>
+      <div class="ferramentas"><label><input type="checkbox" id="tratarAuto" checked> Tirar o fundo e padronizar as fotos</label>
+        <span class="espaco"></span>${ps.length ? `<button type="button" id="btnDescartar" ${dis}>Descartar lote</button>` : ''}</div>
       <div id="envio" class="progresso-envio" hidden><span id="envioTexto"></span><div class="barra"><i id="envioBarra" data-pct="0"></i></div></div>
     </section>
     ${ps.length ? `<section class="bloco vidro"><h2>Revisar e publicar</h2>
@@ -150,8 +162,9 @@ function cartaoProduto(p) {
     : p.erroIa ? `<span class="etiqueta atencao" title="${escapar(p.erroIa)}">IA não leu</span>` : '';
   const dis = enviado || publicando ? 'disabled' : '';
   return `<article class="produto vidro ${enviado ? 'enviado' : ''}" data-item="${escapar(p.id)}">
-    <div class="foto"><img data-foto="${escapar(p.previewUrl)}" alt="">
-      <button type="button" data-tratar="${p.tratada ? 'desfazer' : 'tratar'}" ${dis}>${p.tratada ? 'Usar original' : 'Tirar fundo'}</button></div>
+    <div class="foto">${p.semFoto ? '<div class="sem-foto">Sem foto</div>' : `<img data-foto="${escapar(p.previewUrl)}" alt="">`}
+      ${p.semFoto ? `<button type="button" data-por-foto ${dis}>Pôr foto</button>` : `<button type="button" data-tratar="${p.tratada ? 'desfazer' : 'tratar'}" ${dis}>${p.tratada ? 'Usar original' : 'Tirar fundo'}</button>
+      <button type="button" data-por-foto ${dis}>Trocar foto</button>`}</div>
     <div class="campos">
       <input data-campo="titulo" value="${escapar(p.titulo)}" placeholder="Título" maxlength="120" ${dis}>
       <textarea data-campo="descricao" placeholder="Descrição" maxlength="400" ${dis}>${escapar(p.descricao)}</textarea>
@@ -230,9 +243,13 @@ function desenharPasso() {
   if (atual === 'adicionais') corpo = adicionaisHtml();
   if (atual === 'conferencia') corpo = `<section class="bloco vidro"><h2>Catálogo</h2><p class="dica">${loja.conferencia ? `Última conferência: ${{ ok: 'pronto para entregar', atencao: 'pode entregar, vale melhorar', bloqueante: 'corrigir antes de entregar' }[loja.conferencia.situacao]}.` : 'Ainda não conferido.'}</p>
     <div class="acoes-passo"><button type="button" class="principal" data-acao-loja="conferir">Conferir catálogo agora</button>${loja.conferencia ? '<button type="button" data-acao-loja="abrir-conferencia">Ver relatório</button>' : ''}</div></section>`;
-  if (atual === 'entrega_cliente') corpo = `<section class="bloco vidro"><h2>Combinar com o cliente</h2>${dados([['Link da loja', loja.link || ''], ['WhatsApp do cliente', telefone(vista.ficha.loja.telefone)]])}
-    <p class="dica">Mostre os pedidos de teste, como abrir e fechar a loja e como mudar preço. Depois marque a entrega no roteiro do painel.</p>
-    <div class="acoes-passo"><button type="button" data-acao-loja="abrir-roteiro">Abrir roteiro no painel</button>${loja.link ? '<button type="button" data-acao-loja="abrir-cardapio-publico">Ver a loja como o cliente</button>' : ''}</div></section>`;
+  if (atual === 'entrega_cliente') corpo = `<section class="bloco vidro"><h2>Loja</h2>${dados([['Link da loja', loja.link || ''], ['WhatsApp do cliente', telefone(vista.ficha.loja.telefone)]])}
+    <div class="kit"><div class="qr">${loja.link ? '<img id="qrLoja" alt="QR Code da loja">' : '<p class="dica">O QR Code aparece quando a loja tiver link público (depois da primeira publicação).</p>'}</div>
+      <div class="acoes-passo coluna">${loja.link ? '<button type="button" class="principal" id="btnCartaz">Salvar cartaz com QR Code (PDF)</button><button type="button" data-acao-loja="abrir-cardapio-publico">Ver a loja como o cliente</button>' : ''}
+        <button type="button" data-acao-loja="abrir-roteiro">Abrir roteiro no painel</button></div></div></section>
+    <section class="bloco vidro"><h2>Mensagem de entrega</h2><p class="dica">Revise e mande ao cliente. Mostre também um pedido de teste e como abrir e fechar a loja.</p>
+      <textarea id="mensagemEntrega" rows="12" class="mensagem"></textarea>
+      <div class="acoes-passo"><button type="button" class="principal" id="btnWhatsEntrega">Mandar no WhatsApp</button><button type="button" id="btnCopiarEntrega">Copiar</button></div></section>`;
 
   $('passo').innerHTML = `<header class="cabeca-passo"><div><small>${fase} · passo ${ORDEM.indexOf(atual) + 1} de ${ORDEM.length}</small><h1>${p.titulo}</h1><p>${p.texto}</p></div>
       <span class="estado ${classe}">${texto}</span></header>
@@ -244,10 +261,12 @@ function desenharPasso() {
       ${ORDEM.indexOf(atual) < ORDEM.length - 1 ? '<button type="button" data-proximo>Próximo passo →</button>' : ''}
     </div></section>`;
   document.querySelectorAll('img[data-imagem]').forEach(async (img) => { const r = await pedir('imagemFicha', img.dataset.imagem); if (r.url) img.src = r.url; });
+  document.querySelectorAll('img[data-tratada]').forEach(async (img) => { const r = await pedir('imagemTratada', img.dataset.tratada); if (r.url) img.src = r.url; });
   const corCampo = document.querySelector('[data-copiar^="#"]');
   if (corCampo) { const s = document.createElement('span'); s.className = 'cor'; s.style.background = corCampo.dataset.copiar; corCampo.previousElementSibling.prepend(s); }
   larguras();
   if (atual === 'produtos') carregarFotos();
+  if (atual === 'entrega_cliente') pedir('kitEntrega').then((k) => { if (k.erro) return; if (k.qr && $('qrLoja')) $('qrLoja').src = k.qr; if ($('mensagemEntrega') && !$('mensagemEntrega').value) $('mensagemEntrega').value = k.mensagem; });
 }
 function abrir(id) { atual = id; desenharTrilha(); desenharPasso(); $('passo').scrollTop = 0; }
 
@@ -264,6 +283,7 @@ window.secao.aoDados((d) => {
   const primeira = !loja; loja = d.loja;
   if (primeira) recarregar(); else if (carregado) { desenharTrilha(); if (!['produtos', 'adicionais'].includes(atual)) desenharPasso(); }
 });
+window.secao.aoMostrar(() => { if (carregado) recarregar(); });
 window.secao.aoProgresso((p) => {
   if (!$('envio')) return;
   $('envio').hidden = !p; if (!p) return;
@@ -298,10 +318,41 @@ document.addEventListener('click', async (e) => {
   }
   if (alvo.dataset.proximo !== undefined) return abrir(ORDEM[ORDEM.indexOf(atual) + 1]);
 
+  if (alvo.id === 'btnCartaz') { alvo.disabled = true; const r = await pedir('cartaz'); alvo.disabled = false; return r.erro ? avisar(r.erro, true) : avisar(`Cartaz salvo em ${r.caminho}`); }
+  if (alvo.id === 'btnCopiarEntrega') { await navigator.clipboard.writeText($('mensagemEntrega').value).catch(() => {}); alvo.textContent = 'Copiado'; return; }
+  if (alvo.id === 'btnWhatsEntrega') { const r = await pedir('whatsapp', $('mensagemEntrega').value); if (r.erro) avisar(r.erro, true); return; }
+  if (alvo.dataset.salvarImagem) {
+    const r = await pedir('salvarImagem', alvo.dataset.salvarImagem);
+    return r.erro ? avisar(r.erro, true) : avisar(`Salvo em ${r.caminho}`);
+  }
+  // ficha
+  if (alvo.id === 'btnLinkFicha') {
+    const r = await pedir('linkFicha'); if (r.erro) return avisar(r.erro, true);
+    $('linkFicha').hidden = false; $('linkFichaUrl').value = r.url; return;
+  }
+  if (alvo.id === 'btnCopiarLink') { await navigator.clipboard.writeText($('linkFichaUrl').value).catch(() => {}); alvo.textContent = 'Copiado'; return; }
+  if (alvo.id === 'btnWhatsFicha') {
+    const r = await pedir('whatsapp', `Olá! Para montarmos sua loja no Cardapio.ai, preencha a ficha neste link (leva uns 10 minutos): ${$('linkFichaUrl').value}`);
+    if (r.erro) avisar(r.erro, true); return;
+  }
+
   // produtos
   if (alvo.id === 'btnFotos') {
     alvo.disabled = true;
     const r = await pedir('escolherFotos', { tratar: $('tratarAuto').checked });
+    alvo.disabled = false;
+    if (r.erro) return avisar(r.erro, true);
+    if (r.cancelado) return;
+    lote = r.lote; desenharTrilha(); desenharPasso();
+    if (r.avisos?.length) avisar(r.avisos.join(' · '));
+    return;
+  }
+  if (alvo.id === 'btnImpresso' || alvo.id === 'btnImportar' || alvo.dataset.porFoto !== undefined) {
+    const item = alvo.closest('[data-item]')?.dataset.item;
+    alvo.disabled = true;
+    const r = alvo.id === 'btnImpresso' ? await pedir('cardapioImpresso')
+      : alvo.id === 'btnImportar' ? await pedir('importarLink', $('linkImportar').value)
+        : await pedir('fotoDoItem', item, { tratar: $('tratarAuto')?.checked ?? true });
     alvo.disabled = false;
     if (r.erro) return avisar(r.erro, true);
     if (r.cancelado) return;

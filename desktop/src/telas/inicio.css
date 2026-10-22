@@ -4,6 +4,7 @@
 .caixa h1{font-size:22px;margin:22px 0 4px}
 .caixa .suave{margin:0 0 20px;font-size:13px}
 .largo{width:100%;padding:11px}
+.trocar{margin-top:8px;background:transparent}
 .avancado{margin:0 0 6px;font-size:12px;color:var(--suave)}
 .avancado summary{cursor:pointer;margin-bottom:8px}
 

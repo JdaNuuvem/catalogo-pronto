@@ -9,4 +9,5 @@ contextBridge.exposeInMainWorld('secao', {
   implantacao: (nome, ...args) => ipcRenderer.invoke(`implantacao:${nome}`, ...args),
   aoProgresso: (fn) => ipcRenderer.on('implantacao:progresso', (_e, dados) => fn(dados)),
   aoEvento: (fn) => ipcRenderer.on('implantacao:evento', (_e, dados) => fn(dados)),
+  aoMostrar: (fn) => ipcRenderer.on('implantacao:mostrada', () => fn()),
 });

@@ -64,3 +64,18 @@ test('IA sugere adicionais: limpa a resposta, nao inventa preco e so usa categor
   assert.deepEqual(grupos, [{ nome: 'Turbine seu lanche', minimo: 2, maximo: 2, categorias: ['🍔 Lanches'], itens: [{ nome: 'Bacon extra', preco: 400 }, { nome: 'Cheddar', preco: null }] }]);
   assert.match(pedido.messages[0].content, /bacon extra 4 reais/); assert.match(pedido.messages[0].content, /X-Burguer \[🍔 Lanches\]/);
 });
+
+test('logo vira quadrado 800x800 em PNG e capa fica larga, ate 1920px e abaixo de 2MB', async () => {
+  const logoLargo = await sharp({ create: { width: 900, height: 300, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: { create: { width: 600, height: 200, channels: 4, background: '#1f5170' } }, left: 150, top: 50 }]).png().toBuffer();
+  const logo = await sharp(await imagem.tratarLogo(logoLargo)).metadata();
+  assert.deepEqual([logo.width, logo.height, logo.format, logo.hasAlpha], [800, 800, 'png', true]);
+  // Capa grande com ruido (dificil de comprimir) ainda sai abaixo do limite do Cardapio.ai.
+  const ruido = Buffer.alloc(4000 * 1500 * 3); for (let i = 0; i < ruido.length; i++) ruido[i] = (i * 2654435761) >>> 24;
+  const capaGrande = await sharp(ruido, { raw: { width: 4000, height: 1500, channels: 3 } }).png().toBuffer();
+  const capa = await imagem.tratarCapa(capaGrande);
+  const meta = await sharp(capa).metadata();
+  assert.deepEqual([meta.width, meta.format], [1920, 'jpeg']); assert.ok(capa.length <= 2 * 1024 * 1024, `capa com ${capa.length} bytes`);
+  // Capa pequena nao e ampliada.
+  assert.equal((await sharp(await imagem.tratarCapa(await fotoDeProduto())).metadata()).width, 800);
+});

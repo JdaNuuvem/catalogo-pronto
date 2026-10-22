@@ -6,7 +6,9 @@
  * acompanha a publicacao; quando o Cardapio.ai pede o codigo de acesso, o app
  * le no e-mail da loja e responde sozinho.
  */
-const { ipcMain, dialog, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, nativeImage, Notification, shell } = require('electron');
+const entrega = require('./entrega');
+const { coletarPagina } = require('./coleta');
 const fs = require('fs');
 const path = require('path');
 
@@ -38,6 +40,9 @@ function lerFotos(caminhos) {
   return { fotos, recusadas };
 }
 
+/** Nome de arquivo a partir do nome da loja (sem acento nem simbolo). */
+const slug = (t) => String(t).normalize('NFD').replace(/[^A-Za-z0-9 -]/g, '').trim().replace(/ +/g, '-').toLowerCase() || 'loja';
+
 /** Miniatura em data URL para a tela (a foto inteira fica no servidor). */
 const miniatura = (buffer, largura = 360) => {
   const img = nativeImage.createFromBuffer(buffer);
@@ -68,6 +73,48 @@ function registrar({ estadoDe, lerCodigoNoEmail, abrirNoCardapio }) {
   });
   canal('passo', async (estado, _wc, passo, situacao) => ({ passos: await estado.api.salvarPasso(id(estado), passo, situacao) }));
   canal('abrir', async (estado, _wc, caminho) => { abrirNoCardapio(estado, caminho); return { ok: true }; });
+  canal('linkFicha', async (estado) => estado.api.linkFicha(id(estado)));
+  /** Abre a conversa do WhatsApp com o telefone da ficha e a mensagem pronta (o atendente so envia). */
+  canal('whatsapp', async (estado, _wc, texto) => {
+    const tel = (await estado.api.ficha(id(estado))).ficha.loja.telefone;
+    if (!tel) return { erro: 'A ficha ainda não tem o WhatsApp do cliente.' };
+    await shell.openExternal(`https://wa.me/55${tel}?text=${encodeURIComponent(String(texto || '').slice(0, 2000))}`);
+    return { ok: true };
+  });
+  canal('imagemTratada', async (estado, _wc, tipo) => ({ url: miniatura(await estado.api.imagemFichaTratada(id(estado), tipo), 480) }));
+  /** Grava logo ou capa prontos em Downloads/Catalogo Pronto e mostra o arquivo para subir no Cardapio.ai. */
+  canal('salvarImagem', async (estado, _wc, tipo) => {
+    const dados = await estado.api.imagemFichaTratada(id(estado), tipo);
+    const pasta = path.join(app.getPath('downloads'), 'Catalogo Pronto');
+    fs.mkdirSync(pasta, { recursive: true });
+    const nome = `${slug(estado.loja.nome)}-${tipo}.${tipo === 'logo' ? 'png' : 'jpg'}`;
+    const destino = path.join(pasta, nome);
+    fs.writeFileSync(destino, dados);
+    shell.showItemInFolder(destino);
+    return { caminho: destino };
+  });
+  // ------------------------------------------------------------------ entrega
+  canal('kitEntrega', async (estado) => ({
+    qr: estado.loja.link ? await entrega.qrCode(estado.loja.link) : null,
+    mensagem: entrega.mensagemDeEntrega({ nome: estado.loja.nome, link: estado.loja.link, atendente: estado.loja.atendente }),
+  }));
+  /** Cartaz A4 em PDF (nome, logo, QR Code e link) gravado em Downloads/Catalogo Pronto. */
+  canal('cartaz', async (estado) => {
+    if (!estado.loja.link) return { erro: 'A loja ainda não tem link público. Ele aparece depois da primeira publicação.' };
+    const { ficha } = await estado.api.ficha(id(estado));
+    const logo = ficha.marca.logo_material ? `data:image/png;base64,${(await estado.api.imagemFichaTratada(id(estado), 'logo').catch(() => Buffer.alloc(0))).toString('base64')}` : null;
+    const html = entrega.cartazHtml({ nome: estado.loja.nome, link: estado.loja.link, qr: await entrega.qrCode(estado.loja.link), logo: logo && logo.length > 30 ? logo : null, cor: ficha.marca.cor });
+    const oculta = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true, javascript: false } });
+    try {
+      await oculta.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      const pdf = await oculta.webContents.printToPDF({ pageSize: 'A4', printBackground: true, margins: { marginType: 'none' } });
+      const pasta = path.join(app.getPath('downloads'), 'Catalogo Pronto');
+      fs.mkdirSync(pasta, { recursive: true });
+      const destino = path.join(pasta, `${slug(estado.loja.nome)}-cartaz-qrcode.pdf`);
+      fs.writeFileSync(destino, pdf); shell.showItemInFolder(destino);
+      return { caminho: destino };
+    } finally { oculta.destroy(); }
+  });
   canal('imagemFicha', async (estado, _wc, tipo) => ({ url: miniatura(await estado.api.imagemFicha(id(estado), tipo), 480) }));
 
   // ------------------------------------------------------------------ produtos
@@ -93,6 +140,42 @@ function registrar({ estadoDe, lerCodigoNoEmail, abrirNoCardapio }) {
     avisar(null);
     return { lote: await estado.api.lote(id(estado)), avisos };
   });
+  const escolher = (estado, titulo, multiplas) => dialog.showOpenDialog(estado.win, { title: titulo,
+    properties: multiplas ? ['openFile', 'multiSelections'] : ['openFile'], filters: [{ name: 'Imagens', extensions: ['jpg', 'jpeg', 'png', 'webp'] }] });
+
+  canal('cardapioImpresso', async (estado, wc) => {
+    const escolha = await escolher(estado, 'Fotos do cardápio impresso', true);
+    if (escolha.canceled || !escolha.filePaths.length) return { cancelado: true };
+    const { fotos, recusadas } = lerFotos(escolha.filePaths.slice(0, 6));
+    wc.send('implantacao:progresso', { etapa: 'A IA está lendo o cardápio', feitas: 0, total: 1 });
+    try {
+      const r = await estado.api.impresso(id(estado), fotos);
+      return { lote: await estado.api.lote(id(estado)), avisos: [...recusadas, `${r.total} produto(s) lidos do cardápio. Confira e ponha as fotos.`] };
+    } finally { if (!wc.isDestroyed()) wc.send('implantacao:progresso', null); }
+  });
+
+  canal('importarLink', async (estado, wc, url) => {
+    const avisar = (etapa) => { if (!wc.isDestroyed()) wc.send('implantacao:progresso', etapa ? { etapa, feitas: 0, total: 1 } : null); };
+    try {
+      avisar('Abrindo o cardápio e carregando todos os produtos');
+      const pagina = await coletarPagina(url);
+      avisar(`A IA está montando os produtos (${pagina.imagens.length} fotos achadas)`);
+      const r = await estado.api.importar(id(estado), pagina);
+      return { lote: await estado.api.lote(id(estado)), avisos: [`${r.total} produto(s) importados, ${r.comFoto} com foto.`] };
+    } finally { avisar(null); }
+  });
+
+  canal('fotoDoItem', async (estado, _wc, item, { tratar = true } = {}) => {
+    const escolha = await escolher(estado, 'Foto do produto', false);
+    if (escolha.canceled || !escolha.filePaths.length) return { cancelado: true };
+    const { fotos, recusadas } = lerFotos(escolha.filePaths);
+    if (!fotos.length) return { erro: recusadas.join(' · ') || 'Foto não aceita.' };
+    const r = await estado.api.trocarFoto(id(estado), item, fotos[0]);
+    const avisos = [];
+    if (tratar) { const t = await estado.api.tratarFoto(id(estado), r.id).catch((e) => ({ aviso: e.message })); if (t.aviso) avisos.push(t.aviso); }
+    return { lote: await estado.api.lote(id(estado)), avisos };
+  });
+
   canal('foto', async (estado, _wc, previewUrl) => ({ url: miniatura(await estado.api.foto(id(estado), previewUrl)) }));
   canal('salvarItem', async (estado, _wc, campos) => estado.api.salvarItem(id(estado), campos));
   canal('tratar', async (estado, _wc, item) => estado.api.tratarFoto(id(estado), item));
@@ -112,6 +195,9 @@ function registrar({ estadoDe, lerCodigoNoEmail, abrirNoCardapio }) {
     estado.publicacao = { aguardandoCodigo: false };
     estado.api.eventos(id(estado), async (ev) => {
       enviar(ev);
+      if (ev.tipo === 'fim' && Notification.isSupported()) {
+        new Notification({ title: 'Publicação terminou', body: `${estado.loja.nome}: ${ev.ok} produto(s) publicados${ev.falhas ? `, ${ev.falhas} com erro` : ''}.` }).show();
+      }
       if (ev.tipo !== 'mfa' || !estado.publicacao || estado.publicacao.aguardandoCodigo) return;
       estado.publicacao.aguardandoCodigo = true;
       const pedidoEm = Date.now();
