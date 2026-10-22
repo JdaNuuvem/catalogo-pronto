@@ -12,6 +12,7 @@ button{cursor:pointer;border:1px solid rgba(35,32,28,.12);background:rgba(255,25
 button:hover:not(:disabled){background:#fff;border-color:rgba(35,32,28,.25)}
 button:disabled{opacity:.45;cursor:not-allowed}
 button.principal{background:linear-gradient(135deg,#cc5d3f,#a8442a);color:#fff;border-color:transparent;font-weight:600;box-shadow:0 6px 18px rgba(168,68,42,.28)}
+button.principal:hover:not(:disabled){background:linear-gradient(135deg,#bd5034,#963a23);border-color:transparent}
 input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(35,32,28,.14);background:rgba(255,255,255,.8);color:var(--tinta)}
 input:focus,button:focus-visible{outline:2px solid rgba(168,68,42,.45);outline-offset:1px}
 label{display:block;font-size:12px;color:var(--suave);margin-bottom:12px}
@@ -23,3 +24,4 @@ label input{margin-top:5px}
 .erro{color:var(--erro);font-size:13px;min-height:1.2em;margin:4px 0 10px}
 .suave{color:var(--suave)}
 .escondido{display:none!important}
+[hidden]{display:none!important}

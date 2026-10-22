@@ -52,6 +52,7 @@ class Api {
 
   eu() { return this.pedir('/api/app/eu'); }
   async lojas() { return (await this.pedir('/api/app/lojas')).lojas; }
+  async lembretes() { return (await this.pedir('/api/app/lembretes')).lembretes; }
 
   /** Login de uma loja no cofre. Cada pedido fica registrado no historico da loja. */
   acesso(lojaId, servico) {
@@ -64,6 +65,9 @@ class Api {
   salvarConferencia(lojaId, { situacao, totais, problemas }) {
     return this.pedir(`/api/app/lojas/${Number(lojaId)}/conferencia`, { metodo: 'POST', corpo: { situacao, totais, problemas } });
   }
+
+  /** Situacao do plano da loja no Cardapio.ai (lida pelo app na tela de plano). */
+  salvarPlano(lojaId, plano) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/plano`, { metodo: 'POST', corpo: plano }); }
 
   async sair() {
     try { await this.pedir('/api/app/sair', { metodo: 'POST', corpo: {} }); } finally { this.token = null; }

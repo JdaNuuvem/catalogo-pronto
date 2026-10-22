@@ -1,3 +1,4 @@
+/* Tela de entrar */
 .tela-entrar{min-height:100%;display:grid;place-items:center;padding:24px}
 .caixa{width:100%;max-width:400px;padding:34px;border-radius:22px;background:var(--vidro-forte)}
 .caixa h1{font-size:22px;margin:22px 0 4px}
@@ -5,23 +6,69 @@
 .largo{width:100%;padding:11px}
 .avancado{margin:0 0 6px;font-size:12px;color:var(--suave)}
 .avancado summary{cursor:pointer;margin-bottom:8px}
-.tela-lojas{min-height:100%;display:flex;flex-direction:column}
-.topo{display:flex;align-items:center;gap:12px;margin:14px;padding:10px 16px;border-radius:16px}
-.topo .marca{margin-right:auto}
-.quem{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25;margin-right:6px}
+
+/* App: menu a esquerda e conteudo */
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);height:100vh}
+.menu{display:flex;flex-direction:column;gap:6px;margin:14px 0 14px 14px;padding:18px 12px 12px;border-radius:20px;
+  background:var(--vidro-forte);border:1px solid var(--borda);box-shadow:var(--sombra);backdrop-filter:blur(22px) saturate(170%)}
+.menu>.marca{padding:0 8px 16px}
+.vistas{display:flex;flex-direction:column;gap:2px;flex:1}
+.vistas button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:1px solid transparent;background:transparent;padding:10px 11px;border-radius:11px;color:#4a443d;font-weight:500}
+.vistas button:hover{background:rgba(255,255,255,.7)}
+.vistas button[aria-current=true]{background:#fff;color:var(--acento);font-weight:650;border-color:rgba(168,68,42,.15);box-shadow:0 4px 14px rgba(168,68,42,.1)}
+.conta{margin-left:auto;min-width:22px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:11px;font-style:normal;font-weight:700;background:#d9543c;color:#fff}
+.conta.neutra{background:rgba(35,32,28,.08);color:var(--suave)}
+.icone{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+[data-icone]{display:inline-flex}
+.conta-usuario{display:grid;gap:6px;padding:12px;border-radius:14px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8)}
+.quem{display:flex;flex-direction:column;line-height:1.3;margin-bottom:4px}
 .quem small{color:var(--suave);font-size:11px}
-main{padding:6px 28px 40px}
-.cabeca{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-.cabeca>div{margin-right:auto}
-.cabeca h1{margin:0;font-size:26px;letter-spacing:-.3px}
+.conta-usuario button{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 10px}
+.conta-usuario .icone{width:15px;height:15px}
+/* secao.css centraliza o main das paginas da loja; aqui ele ocupa a coluna toda. */
+.app>.conteudo{max-width:none;margin:0;overflow-y:auto;padding:26px 32px 50px}
+.vista{max-width:1180px}
+.cabeca{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+.cabeca h1{margin:0;font-size:28px;letter-spacing:-.4px}
 .cabeca p{margin:4px 0 0}
-.cabeca input{width:260px}
-.aviso{padding:10px 14px;border-radius:12px;background:#fff1d4;color:#7a5410;font-size:13px}
-.lista{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
-.loja{padding:18px;display:flex;flex-direction:column;gap:12px}
-.loja h2{margin:0;font-size:16px}
+.aviso-geral{padding:10px 14px;border-radius:12px;background:#fff1d4;color:#7a5410;margin:0 0 16px}
+
+/* Hoje */
+.numeros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:8px}
+.numero{padding:14px 16px;display:flex;flex-direction:column}
+.numero span{font-size:12px;color:var(--suave)}
+.numero b{font-size:26px;letter-spacing:-.5px;line-height:1.2}
+.numero.ruim b{color:var(--erro)}
+.sub{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--suave);margin:22px 0 10px}
+.lembrete .nivel{overflow:hidden;text-overflow:ellipsis}
+.lista-lembretes{display:grid;gap:8px}
+.lembrete{display:grid;grid-template-columns:130px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;border-left:4px solid #e0b453}
+.lembrete.urgente{border-left-color:#d9543c}.lembrete.breve{border-left-color:#9fb6cf}
+.lembrete .nivel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--suave)}
+.lembrete.urgente .nivel{color:#b13b26}
+.lembrete b{display:block;font-weight:600}
+.lembrete small{color:var(--suave)}
+.lembrete button{font-size:13px;padding:7px 12px}
+.vazio{padding:30px;text-align:center;color:var(--suave)}
+
+/* Lojas */
+.filtros{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.filtros input{width:280px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{font-size:13px;padding:7px 12px;border-radius:999px}
+.chips button[aria-pressed=true]{background:#fff;color:var(--acento);border-color:rgba(168,68,42,.3);font-weight:600}
+.lista-lojas{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.loja{padding:18px;display:flex;flex-direction:column;gap:12px}
+.loja-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.loja h2{margin:0;font-size:16px}
+.loja .atendente{font-size:12px;color:var(--suave)}
+.progresso{display:grid;grid-template-columns:70px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:12px;color:var(--suave)}
+.chips-loja{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-size:11.5px;padding:3px 9px;border-radius:999px;background:rgba(35,32,28,.07);color:var(--suave)}
 .chip.ok{background:rgba(234,245,238,.95);color:var(--ok)}
-.loja button{align-self:flex-start}
-.vazio{grid-column:1/-1;padding:28px;text-align:center;color:var(--suave)}
+.chip.ruim{background:#fbeceb;color:var(--erro)}
+.chip.atencao{background:#fff1d4;color:#7a5410}
+.proximo-loja{margin:0;padding:9px 12px;border-radius:12px;font-weight:600;font-size:13px;background:rgba(35,32,28,.05);border-left:3px solid #c9c1b6}
+.proximo-loja small{display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--suave)}
+.proximo-loja.ruim{background:#fbeceb;border-left-color:#d9543c}.proximo-loja.atencao{background:#fff6e2;border-left-color:#e0b453}.proximo-loja.ok{background:#eef7f1;border-left-color:#5aa476}
+.loja .acoes{display:flex;gap:8px;margin-top:auto}

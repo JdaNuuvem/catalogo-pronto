@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('catalogo', {
   entrar: (dados) => ipcRenderer.invoke('entrar', dados),
   sair: () => ipcRenderer.invoke('sair'),
   lojas: () => ipcRenderer.invoke('lojas'),
+  lembretes: () => ipcRenderer.invoke('lembretes'),
   abrirLoja: (id) => ipcRenderer.invoke('abrir-loja', id),
   abrirPainel: () => ipcRenderer.invoke('abrir-painel'),
   aoExpirar: (fn) => ipcRenderer.on('sessao-expirada', () => fn()),

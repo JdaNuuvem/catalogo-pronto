@@ -8,14 +8,22 @@
 <link rel="stylesheet" href="loja.css">
 </head>
 <body>
-<header class="barra">
-  <div class="marca"><span class="selo">CP</span><span id="nome"></span></div>
-  <nav id="abas" class="abas" aria-label="Abas da loja"></nav>
-  <button type="button" id="btnVoltar" title="Voltar">←</button>
-  <button type="button" id="btnRecarregar" title="Recarregar">↻</button>
-  <button type="button" id="btnConferir" class="principal" title="Lê o catálogo da loja e compara com o que revisamos">Conferir catálogo</button>
-  <p id="aviso" class="aviso" role="status"></p>
+<aside class="menu">
+  <div class="marca"><span class="selo">CP</span><div><b id="nome"></b><small>Catálogo Pronto</small></div></div>
+  <nav id="secoes" class="secoes" aria-label="Seções da loja"></nav>
+  <div id="plano" class="plano" hidden></div>
+</aside>
+<header class="topo">
+  <div class="titulo"><h1 id="tituloSecao"></h1><small id="subtitulo"></small></div>
+  <p id="aviso" class="aviso" role="status" hidden></p>
+  <div id="controlesNavegador" class="controles" hidden>
+    <button type="button" id="btnVoltar" title="Voltar" aria-label="Voltar">←</button>
+    <button type="button" id="btnRecarregar" title="Recarregar" aria-label="Recarregar">↻</button>
+  </div>
+  <button type="button" id="btnConferir" class="principal">Conferir catálogo</button>
 </header>
+<div id="palco" class="palco" hidden></div>
+<script src="icones.js"></script>
 <script src="loja.js"></script>
 </body>
 </html>

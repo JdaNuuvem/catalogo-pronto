@@ -76,6 +76,11 @@ function registrar() {
     return { lojas: ultimaLista };
   }));
 
+  ipcMain.handle('lembretes', daJanela(async () => {
+    if (!api) throw Object.assign(new Error('Entre novamente no app.'), { sessaoExpirada: true });
+    return { lembretes: await api.lembretes() };
+  }));
+
   ipcMain.handle('abrir-loja', daJanela(async (id) => {
     const loja = ultimaLista.find((l) => l.id === Number(id));
     if (!loja || !api) return { erro: 'Loja não encontrada. Atualize a lista.' };

@@ -373,6 +373,35 @@ test('conferencia do catalogo: app busca o que publicamos, grava o resultado e a
   assert.equal((await chamar(`/api/gestao/clientes/${clienteA}/conferencia`,{cookie:cookieB})).status,403);
 });
 
+test('plano lido no Cardapio.ai pelo app vai para a loja e vira lembrete do administrador',async()=>{
+  const {token}=(await chamar('/api/app/login',{method:'POST',body:{email:'a@teste.local',senha,dispositivo:'PC'}})).dados;
+  const enviar=corpo=>fetch(endereco+`/api/app/lojas/${clienteA}/plano`,{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(corpo)});
+  const daqui2=new Date(Date.now()+2*86400000).toISOString().slice(0,10);
+  assert.equal((await enviar({valido_ate:'06/11/2026'})).status,400);
+  assert.equal((await enviar({plano:'PDV+Robô',periodo:'mensal',valor_centavos:7990,valido_ate:daqui2,teste_ate:null,situacao:'Pagamento recebido via Pix'})).status,200);
+  const admin=(await chamar('/api/gestao',{cookie:cookieAdmin})).dados;
+  const loja=admin.clientes.find(c=>c.id===clienteA);
+  assert.equal(loja.cdp_plano,'PDV+Robô');assert.equal(loja.cdp_plano_valido_ate,daqui2);assert.equal(loja.cdp_plano_valor,7990);assert.ok(loja.cdp_plano_lido_em);
+  assert.ok(admin.lembretes.some(l=>l.tipo==='plano-cardapio'&&l.loja_id===clienteA));
+  const atendente=(await chamar('/api/gestao',{cookie:await login('a@teste.local')})).dados;
+  assert.equal(atendente.lembretes.some(l=>l.tipo==='plano-cardapio'),false);
+});
+
+test('app recebe o resumo de cada loja e os lembretes do dia da carteira',async()=>{
+  const {token}=(await chamar('/api/app/login',{method:'POST',body:{email:'a@teste.local',senha,dispositivo:'PC'}})).dados;
+  const app=url=>fetch(endereco+url,{headers:{authorization:'Bearer '+token}}).then(r=>r.json());
+  const loja=(await app('/api/app/lojas')).lojas.find(l=>l.id===clienteA);
+  assert.equal(typeof loja.roteiro.feitas,'number');assert.equal(loja.roteiro.total,11);
+  assert.equal(typeof loja.ficha.completas,'number');assert.equal(loja.ficha.total,7);assert.equal(typeof loja.ficha.secoes.endereco,'boolean');
+  assert.ok(['implantacao','ativa','pausada'].includes(loja.etapa));
+  assert.equal(loja.plano.plano,'PDV+Robô');assert.ok(loja.plano.valido_ate);
+  assert.equal(loja.conferencia.situacao,'bloqueante');
+  assert.equal(JSON.stringify(loja).includes('senha'),false);
+  const {lembretes}=await app('/api/app/lembretes');
+  assert.ok(Array.isArray(lembretes));
+  assert.equal(lembretes.some(l=>l.tipo==='plano-cardapio'),false,'plano da plataforma e assunto do administrador');
+});
+
 test('desativacao e troca de senha revogam sessoes existentes',async()=>{
   const r=await chamar('/api/gestao/atendentes/'+atendenteA,{cookie:cookieAdmin,method:'PUT',body:{ativo:false}});assert.equal(r.status,200);
   assert.equal((await chamar('/api/gestao',{cookie:cookieA})).status,401);

@@ -11,8 +11,15 @@ cuidando de datas, valores e cobranças.
 3. Clica em **Abrir loja**. A janela tem duas abas: **Cardapio.ai** e **E-mail da loja**.
    Na primeira vez o app preenche o login sozinho; depois a sessão fica salva no perfil
    daquela loja e ela já abre logada.
-4. Se o Cardapio.ai pedir o código de verificação, ele chega no e-mail da loja: é só
-   trocar para a aba E-mail.
+4. Se o Cardapio.ai pedir o código de verificação, o app abre a conversa "Código de acesso"
+   no e-mail da loja, pega o código que chegou **depois** do pedido (nunca um antigo) e
+   preenche sozinho. Sem o e-mail no cofre, o app avisa e o código é digitado à mão.
+5. Ao abrir a loja, o app lê o **plano** no Cardapio.ai (nome, valor, validade, teste grátis)
+   numa janela escondida. Ele aparece na barra e vai para o painel, que avisa o
+   administrador quando faltam 5 dias ou menos.
+6. **Conferir catálogo** lê todos os produtos da loja e compara com o que revisamos no painel:
+   sem preço, preço diferente, repetidos, faltando (corrigir) e sem foto, sem descrição,
+   desativados (atenção). O resultado aparece na aba Conferência e na ficha da loja.
 
 Os logins ficam no cofre do painel: **Lojas e acessos › Logins da loja**.
 

@@ -50,3 +50,16 @@ test('prazos de lojas novas e de tarefas que estao chegando ou atrasados', () =>
   assert.match(l[0].titulo, /Mercado.*atrasad/);
   assert.match(l[1].titulo, /Configurar impressora/);
 });
+
+test('plano do Cardapio.ai vencendo ou teste gratis acabando avisa o administrador', () => {
+  const lojas = [
+    { id: 7, nome: 'Mercado', ativo: 1, cdp_plano_valido_ate: '2026-10-25', onboarding_feitos: Array(11).fill('x') },
+    { id: 8, nome: 'Padaria', ativo: 1, cdp_plano_teste_ate: '2026-10-20', onboarding_feitos: Array(11).fill('x') },
+    { id: 9, nome: 'Longe', ativo: 1, cdp_plano_valido_ate: '2026-12-30', onboarding_feitos: Array(11).fill('x') },
+  ];
+  const l = calcular({ ...base, clientes: lojas });
+  assert.deepEqual(l.map((x) => [x.tipo, x.nivel, x.loja_id]), [['plano-cardapio', 'urgente', 8], ['plano-cardapio', 'breve', 7]]);
+  assert.match(l[0].titulo, /Teste grátis do Cardapio\.ai de Padaria acabou há 2 dias/);
+  assert.match(l[1].titulo, /Plano Cardapio\.ai de Mercado vence em 3 dias/);
+  assert.deepEqual(calcular({ ...base, admin: false, clientes: lojas }), []);
+});

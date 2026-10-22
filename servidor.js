@@ -161,6 +161,7 @@ require('./lib/lojas-rotas').montar(app,{db,banco,fila,exigirLogin,exigirAdmin:s
 const {exigirApp}=require('./lib/cofre').montar(app,{db,banco,exigirLogin,configCardapio:CONFIG_CARDAPIO});
 require('./lib/ficha-rotas').montar(app,{db,exigirLogin,exigirApp,pastaDados:PASTA_DADOS});
 require('./lib/conferencia-rotas').montar(app,{db,exigirLogin,exigirApp});
+require('./lib/app-resumo').montar(app,{db,exigirApp});
 require('./lib/gestao-pix').montar(app,{db,exigirLogin,exigirAdmin:sessao.exigirAdmin,fila,cardapio,banco,configCardapio:CONFIG_CARDAPIO,pastaPerfis:PASTA_PERFIS});
 
 app.get('/api/gestao/clientes/:id/ambiente',exigirLogin,(req,res)=>{

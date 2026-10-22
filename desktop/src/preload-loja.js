@@ -1,11 +1,11 @@
-// Ponte da barra de uma janela de loja: trocar de aba, voltar e recarregar.
+// Ponte da moldura de uma janela de loja: trocar de secao, voltar, recarregar e pedir acoes.
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('loja', {
-  aba: (id) => ipcRenderer.send('loja:aba', id),
+  secao: (id) => ipcRenderer.send('loja:secao', id),
   voltar: () => ipcRenderer.send('loja:voltar'),
   recarregar: () => ipcRenderer.send('loja:recarregar'),
-  conferir: () => ipcRenderer.send('loja:conferir'),
+  acao: (nome) => ipcRenderer.send('loja:acao', nome),
   pronta: () => ipcRenderer.send('loja:pronta'),
-  aoEstado: (fn) => ipcRenderer.on('loja:estado', (_e, estado) => fn(estado)),
+  aoMoldura: (fn) => ipcRenderer.on('loja:moldura', (_e, estado) => fn(estado)),
 });

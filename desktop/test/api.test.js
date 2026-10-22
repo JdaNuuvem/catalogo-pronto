@@ -66,3 +66,18 @@ test('busca o que publicamos e grava o resultado da conferencia da loja', async 
   assert.equal(chamadas[1].method, 'POST');
   assert.deepEqual(JSON.parse(chamadas[1].body), { situacao: 'ok', totais: { produtos: 1 }, problemas: [] });
 });
+
+test('manda para o painel o plano lido na loja', async () => {
+  const { fetch, chamadas } = falso([200, { ok: true }]);
+  const api = new Api({ servidor: 'https://painel.exemplo', token: 'tk', fetch });
+  await api.salvarPlano(7, { plano: 'PDV+Robô', valido_ate: '2026-11-06', em_teste: false });
+  assert.equal(chamadas[0].url, 'https://painel.exemplo/api/app/lojas/7/plano');
+  assert.equal(JSON.parse(chamadas[0].body).valido_ate, '2026-11-06');
+});
+
+test('busca os lembretes do dia da carteira', async () => {
+  const { fetch, chamadas } = falso([200, { lembretes: [{ tipo: 'vencida', titulo: 'x' }] }]);
+  const api = new Api({ servidor: 'https://painel.exemplo', token: 'tk', fetch });
+  assert.equal((await api.lembretes())[0].tipo, 'vencida');
+  assert.equal(chamadas[0].url, 'https://painel.exemplo/api/app/lembretes');
+});

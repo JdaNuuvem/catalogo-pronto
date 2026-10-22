@@ -8,7 +8,14 @@ const GRUPOS = {
   'categoria-vazia': 'Categorias vazias', 'categoria-desativada': 'Categorias desativadas', 'abaixo-do-contratado': 'Quantidade contratada',
 };
 
-window.conferencia.aoResultado((r) => {
+window.secao.aoDados(({ loja, conferencia }) => {
+  // Sem conferencia feita nesta abertura: mostra a explicacao (e a ultima situacao conhecida, se houver).
+  if (!conferencia) {
+    $('vazio').classList.remove('escondido'); $('resultado').classList.add('escondido');
+    $('ultima').textContent = loja.conferencia ? `Última conferência: ${SITUACAO[loja.conferencia.situacao] || loja.conferencia.situacao}, em ${(loja.conferencia.criada_em || '').slice(0, 10).split('-').reverse().join('/')}.` : '';
+    return;
+  }
+  const r = { ...conferencia, loja: loja.nome };
   $('vazio').classList.add('escondido'); $('resultado').classList.remove('escondido');
   $('loja').textContent = r.loja;
   $('quando').textContent = `Lido agora há pouco · ${new Date(r.quando).toLocaleString('pt-BR')}`;
