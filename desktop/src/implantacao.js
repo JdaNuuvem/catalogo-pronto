@@ -74,12 +74,19 @@ function registrar({ estadoDe, lerCodigoNoEmail, abrirNoCardapio }) {
   canal('passo', async (estado, _wc, passo, situacao) => ({ passos: await estado.api.salvarPasso(id(estado), passo, situacao) }));
   canal('abrir', async (estado, _wc, caminho) => { abrirNoCardapio(estado, caminho); return { ok: true }; });
   canal('linkFicha', async (estado) => estado.api.linkFicha(id(estado)));
-  /** Abre a conversa do WhatsApp com o telefone da ficha e a mensagem pronta (o atendente so envia). */
+  /**
+   * WhatsApp para o cliente: pelo numero da operacao (Evolution API no servidor) quando
+   * estiver configurado; senao abre o WhatsApp do computador com a mensagem pronta.
+   */
   canal('whatsapp', async (estado, _wc, texto) => {
     const tel = (await estado.api.ficha(id(estado))).ficha.loja.telefone;
     if (!tel) return { erro: 'A ficha ainda não tem o WhatsApp do cliente.' };
+    if (await estado.api.whatsappConfigurado().catch(() => false)) {
+      await estado.api.enviarWhatsapp(id(estado), texto);
+      return { enviado: true, aviso: 'Mensagem enviada pelo WhatsApp da operação.' };
+    }
     await shell.openExternal(`https://wa.me/55${tel}?text=${encodeURIComponent(String(texto || '').slice(0, 2000))}`);
-    return { ok: true };
+    return { aberto: true };
   });
   canal('imagemTratada', async (estado, _wc, tipo) => ({ url: miniatura(await estado.api.imagemFichaTratada(id(estado), tipo), 480) }));
   /** Grava logo ou capa prontos em Downloads/Catalogo Pronto e mostra o arquivo para subir no Cardapio.ai. */

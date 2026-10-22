@@ -12,4 +12,6 @@ contextBridge.exposeInMainWorld('catalogo', {
   aoExpirar: (fn) => ipcRenderer.on('sessao-expirada', () => fn()),
   desbloquear: (senha) => ipcRenderer.invoke('desbloquear', senha),
   aoBloquear: (fn) => ipcRenderer.on('bloqueado', () => fn()),
+  instalarAtualizacao: () => ipcRenderer.invoke('instalar-atualizacao'),
+  aoAtualizacao: (fn) => ipcRenderer.on('atualizacao-pronta', (_e, versao) => fn(versao)),
 });

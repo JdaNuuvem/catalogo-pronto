@@ -442,6 +442,9 @@ test('app monta a implantacao: passos, fotos dos produtos tratadas e adicionais 
   const menu=new FormData();menu.append('fotos',new Blob([foto],{type:'image/png'}),'cardapio.png');
   assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/impresso`,{method:'POST',form:menu})).status,502);
   assert.equal((await app(tokenB,`/api/app/lojas/${clienteA}/importar`,{method:'POST',body:{texto:'x'.repeat(50)}})).status,403);
+  // WhatsApp da operacao: sem a Evolution configurada o app sabe e usa o WhatsApp do computador.
+  assert.equal((await app(tokenA,'/api/app/whatsapp')).dados.configurado,false);
+  assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/whatsapp`,{method:'POST',body:{texto:'Olá'}})).status,409);
 
   // Adicionais: sem chave de IA a sugestao explica; grupos aprovados entram na ficha e o texto do cliente fica.
   await chamar(`/api/gestao/clientes/${clienteA}/ficha`,{cookie:cookieA,method:'PUT',body:{adicionais:{texto:'Bacon extra 4 reais'}}});
@@ -455,6 +458,19 @@ test('app monta a implantacao: passos, fotos dos produtos tratadas e adicionais 
   const ficha=(await app(tokenA,`/api/app/lojas/${clienteA}/ficha`)).dados.ficha;
   assert.equal(ficha.adicionais.texto,'Bacon extra 5 reais');assert.deepEqual(ficha.adicionais.grupos,grupos);
   assert.equal((await app(tokenA,`/api/app/lojas/${clienteA}/ficha/adicionais`,{method:'PUT',body:{grupos:[{nome:'',itens:[]}]}})).status,400);
+});
+
+test('painel serve o instalador e as atualizacoes do app desktop',async()=>{
+  assert.equal((await fetch(endereco+'/app-desktop/baixar',{redirect:'manual'})).status,404);
+  const pasta=path.join(raiz,'app-desktop');fs.mkdirSync(pasta,{recursive:true});
+  fs.writeFileSync(path.join(pasta,'latest.yml'),'version: 0.2.0\npath: catalogo-pronto-setup-0.2.0.exe\nsha512: abc\n');
+  fs.writeFileSync(path.join(pasta,'catalogo-pronto-setup-0.2.0.exe'),'MZ');
+  const baixar=await fetch(endereco+'/app-desktop/baixar',{redirect:'manual'});
+  assert.equal(baixar.status,302);assert.equal(baixar.headers.get('location'),'/app-desktop/catalogo-pronto-setup-0.2.0.exe');
+  const yml=await fetch(endereco+'/app-desktop/latest.yml');
+  assert.equal(yml.headers.get('cache-control'),'no-cache');assert.match(await yml.text(),/version: 0\.2\.0/);
+  assert.equal((await fetch(endereco+'/app-desktop/catalogo-pronto-setup-0.2.0.exe')).status,200);
+  assert.equal((await fetch(endereco+'/app-desktop/')).status,404);
 });
 
 test('desativacao e troca de senha revogam sessoes existentes',async()=>{

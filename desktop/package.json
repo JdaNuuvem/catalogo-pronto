@@ -1,6 +1,6 @@
 {
   "name": "catalogo-pronto-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "App da equipe do Catálogo Pronto: cada loja aberta já logada no Cardapio.ai e no e-mail",
   "main": "src/main.js",
@@ -21,14 +21,29 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.png",
+      "artifactName": "catalogo-pronto-setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Catálogo Pronto"
+    },
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://painel.invalido/app-desktop/"
+      }
+    ]
   },
   "dependencies": {
+    "electron-updater": "6.8.10",
     "qrcode": "^1.5.4"
   }
 }

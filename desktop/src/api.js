@@ -160,6 +160,8 @@ class Api {
     }
   }
 
+  async whatsappConfigurado() { return (await this.pedir('/api/app/whatsapp')).configurado; }
+  enviarWhatsapp(lojaId, texto) { return this.pedir(`/api/app/lojas/${Number(lojaId)}/whatsapp`, { metodo: 'POST', corpo: { texto } }); }
   desbloquear(senha) { return this.pedir('/api/app/desbloquear', { metodo: 'POST', corpo: { senha } }); }
 
   async sair() {

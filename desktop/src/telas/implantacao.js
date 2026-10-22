@@ -320,7 +320,7 @@ document.addEventListener('click', async (e) => {
 
   if (alvo.id === 'btnCartaz') { alvo.disabled = true; const r = await pedir('cartaz'); alvo.disabled = false; return r.erro ? avisar(r.erro, true) : avisar(`Cartaz salvo em ${r.caminho}`); }
   if (alvo.id === 'btnCopiarEntrega') { await navigator.clipboard.writeText($('mensagemEntrega').value).catch(() => {}); alvo.textContent = 'Copiado'; return; }
-  if (alvo.id === 'btnWhatsEntrega') { const r = await pedir('whatsapp', $('mensagemEntrega').value); if (r.erro) avisar(r.erro, true); return; }
+  if (alvo.id === 'btnWhatsEntrega') { const r = await pedir('whatsapp', $('mensagemEntrega').value); if (r.erro) avisar(r.erro, true); else if (r.aviso) avisar(r.aviso); return; }
   if (alvo.dataset.salvarImagem) {
     const r = await pedir('salvarImagem', alvo.dataset.salvarImagem);
     return r.erro ? avisar(r.erro, true) : avisar(`Salvo em ${r.caminho}`);
@@ -333,7 +333,7 @@ document.addEventListener('click', async (e) => {
   if (alvo.id === 'btnCopiarLink') { await navigator.clipboard.writeText($('linkFichaUrl').value).catch(() => {}); alvo.textContent = 'Copiado'; return; }
   if (alvo.id === 'btnWhatsFicha') {
     const r = await pedir('whatsapp', `Olá! Para montarmos sua loja no Cardapio.ai, preencha a ficha neste link (leva uns 10 minutos): ${$('linkFichaUrl').value}`);
-    if (r.erro) avisar(r.erro, true); return;
+    if (r.erro) avisar(r.erro, true); else if (r.aviso) avisar(r.aviso); return;
   }
 
   // produtos

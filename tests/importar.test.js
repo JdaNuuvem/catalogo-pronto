@@ -61,3 +61,16 @@ test('IA importa pagina: liga cada produto a uma imagem que existe e tira repeti
   await ia.extrairCardapio({ texto: ('Produto qualquer R$ 10,00\n').repeat(3000), imagens: [] }, cfg, buscar);
   assert.ok(pedidos.length >= 3);
 });
+
+const whatsapp = require('../lib/whatsapp');
+test('WhatsApp pela Evolution API: liga so com as tres variaveis e manda para o numero com 55', async () => {
+  assert.equal(whatsapp.configuracao({ EVOLUTION_URL: 'https://evo.exemplo/' }), null);
+  const cfg = whatsapp.configuracao({ EVOLUTION_URL: 'https://evo.exemplo/', EVOLUTION_API_KEY: 'k', EVOLUTION_INSTANCIA: 'operacao 1' });
+  assert.deepEqual(cfg, { url: 'https://evo.exemplo', chave: 'k', instancia: 'operacao 1' });
+  assert.equal(whatsapp.numero('(11) 99999-0000'), '5511999990000'); assert.equal(whatsapp.numero('5511999990000'), '5511999990000'); assert.equal(whatsapp.numero('123'), null);
+  let pedido;
+  await whatsapp.enviarTexto(cfg, '5511999990000', 'Olá', async (url, op) => { pedido = { url, ...op }; return { ok: true, json: async () => ({ key: {} }) }; });
+  assert.equal(pedido.url, 'https://evo.exemplo/message/sendText/operacao%201'); assert.equal(pedido.headers.apikey, 'k');
+  assert.deepEqual(JSON.parse(pedido.body), { number: '5511999990000', text: 'Olá' });
+  await assert.rejects(whatsapp.enviarTexto(cfg, '55', 'x', async () => ({ ok: false, status: 401, text: async () => 'Unauthorized' })), /401: Unauthorized/);
+});

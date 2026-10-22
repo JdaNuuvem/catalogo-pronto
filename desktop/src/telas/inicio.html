@@ -43,7 +43,7 @@
       <button type="button" data-vista="lojas"><span data-icone="lojas"></span>Lojas<i id="contaLojas" class="conta neutra" hidden></i></button>
     </nav>
     <div class="conta-usuario">
-      <span class="quem"><b id="nome"></b><small id="papel"></small></span>
+      <span class="quem"><b id="nome"></b><small id="papel"></small><small id="versao"></small></span>
       <button type="button" id="btnPainel"><span data-icone="painel"></span>Abrir o painel web</button>
       <button type="button" id="btnSair"><span data-icone="sair"></span>Sair</button>
     </div>
@@ -51,6 +51,8 @@
 
   <main class="conteudo">
     <p class="aviso-geral" id="aviso" role="status" hidden></p>
+    <div class="atualizacao" id="atualizacao" hidden><span>Versão <b id="versaoNova"></b> do app pronta.</span>
+      <button type="button" class="principal" id="btnAtualizar">Reiniciar e atualizar</button></div>
 
     <section id="vistaHoje" class="vista">
       <header class="cabeca"><div><h1>Hoje</h1><p class="suave" id="dataHoje"></p></div>

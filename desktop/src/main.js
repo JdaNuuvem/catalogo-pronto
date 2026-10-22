@@ -10,11 +10,12 @@ const { Api } = require('./api');
 const { criarArmazem } = require('./sessao');
 const lojasAbertas = require('./janela-loja');
 const { novidades, criarMemoria } = require('./avisos');
+const atualizacao = require('./atualizacao');
 
 const SERVIDOR_PADRAO = process.env.CATALOGO_SERVIDOR || 'https://l11drbc2qrrvbhdp6s2tkhoo.177.7.45.242.sslip.io';
 // Minutos sem mexer no computador ate o app pedir a senha de novo.
 const BLOQUEIO_MIN = Number(process.env.CATALOGO_BLOQUEIO_MIN) || 15;
-let janela = null, api = null, armazem = null, ultimaLista = [], bloqueado = false, memoriaAvisos = null;
+let janela = null, api = null, armazem = null, ultimaLista = [], bloqueado = false, memoriaAvisos = null, atualizador = null, versaoPronta = null;
 
 function criarJanela() {
   janela = new BrowserWindow({
@@ -82,7 +83,7 @@ function registrar() {
     if (!api || !api.token) return { conectado: false, servidor: guardada.servidor || SERVIDOR_PADRAO };
     try {
       const eu = await api.eu();
-      return { conectado: true, bloqueado, nome: eu.nome, papel: eu.papel, servidor: api.servidor };
+      return { conectado: true, bloqueado, nome: eu.nome, papel: eu.papel, servidor: api.servidor, versao: app.getVersion(), versaoPronta };
     } catch (e) {
       if (e.sessaoExpirada) { expirou(); return { conectado: false, servidor: guardada.servidor, aviso: 'Sua sessão terminou. Entre novamente.' }; }
       return { conectado: true, offline: true, nome: guardada.nome, papel: guardada.papel, servidor: api.servidor, aviso: e.message };
@@ -135,6 +136,8 @@ function registrar() {
     return { ok: true };
   }));
 
+  ipcMain.handle('instalar-atualizacao', daJanela(async () => ({ ok: atualizador.instalar() }), { mesmoBloqueado: false }));
+
   lojasAbertas.registrarCanais();
 }
 
@@ -151,6 +154,10 @@ if (!app.requestSingleInstanceLock()) {
     if (guardada.token) api = new Api({ servidor: guardada.servidor, token: guardada.token });
     registrar();
     criarJanela();
+    atualizador = atualizacao.iniciar({
+      servidor: () => (api ? api.servidor : armazem.ler().servidor || SERVIDOR_PADRAO),
+      aoPronta: (versao) => { versaoPronta = versao; if (janela) janela.webContents.send('atualizacao-pronta', versao); },
+    });
     // Bloqueio: tela do Windows bloqueada, computador suspenso ou tempo parado.
     powerMonitor.on('lock-screen', bloquear);
     powerMonitor.on('suspend', bloquear);

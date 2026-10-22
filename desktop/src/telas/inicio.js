@@ -99,6 +99,8 @@ async function mostrarApp(sessao) {
   $('nome').textContent = sessao.nome || ''; $('papel').textContent = PAPEIS[sessao.papel] || '';
   $('dataHoje').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   if (sessao.aviso) avisar(sessao.aviso);
+  $('versao').textContent = sessao.versao ? `App ${sessao.versao}` : '';
+  if (sessao.versaoPronta) mostrarAtualizacao(sessao.versaoPronta);
   await carregar();
 }
 
@@ -133,6 +135,12 @@ $('btnPainel').addEventListener('click', () => window.catalogo.abrirPainel());
 $('btnSair').addEventListener('click', async () => { await window.catalogo.sair(); lojas = []; lembretes = []; mostrarEntrar(); });
 window.catalogo.aoExpirar(() => mostrarEntrar(null, 'Sua sessão terminou. Entre novamente.'));
 window.catalogo.aoBloquear(mostrarBloqueio);
+function mostrarAtualizacao(versao) { $('versaoNova').textContent = versao; $('atualizacao').hidden = false; }
+window.catalogo.aoAtualizacao(mostrarAtualizacao);
+$('btnAtualizar').addEventListener('click', async () => {
+  if (!confirm('O app vai fechar as lojas abertas e reiniciar já atualizado. Continuar?')) return;
+  const r = await window.catalogo.instalarAtualizacao(); if (r.erro) avisar(r.erro);
+});
 $('formBloqueio').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('btnDesbloquear').disabled = true;

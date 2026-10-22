@@ -49,6 +49,20 @@ app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(RAIZ, 'public')));
 
+// App desktop: instalador e atualizacoes ficam em <PASTA_DADOS>/app-desktop (latest.yml,
+// catalogo-pronto-setup-X.exe e .blockmap, gerados pelo electron-builder em desktop/dist).
+const PASTA_APP = path.join(PASTA_DADOS, 'app-desktop');
+app.get('/app-desktop/baixar', (req, res) => {
+  const yml = path.join(PASTA_APP, 'latest.yml');
+  const nome = fs.existsSync(yml) && /^path:\s*(\S+)\s*$/m.exec(fs.readFileSync(yml, 'utf8'))?.[1];
+  if (!nome || !fs.existsSync(path.join(PASTA_APP, path.basename(nome)))) return res.status(404).send('Nenhuma versão do app publicada ainda.');
+  res.redirect(`/app-desktop/${encodeURIComponent(path.basename(nome))}`);
+});
+app.use('/app-desktop', express.static(PASTA_APP, {
+  index: false, dotfiles: 'deny',
+  setHeaders: (res, arquivo) => { if (arquivo.endsWith('.yml')) res.set('Cache-Control', 'no-cache'); },
+}));
+
 const exigirLogin = sessao.exigirLogin(db);
 
 // ------------------------------------------------------------------ uploads
@@ -163,6 +177,7 @@ require('./lib/lojas-rotas').montar(app,{db,banco,fila,exigirLogin,exigirAdmin:s
 const {exigirApp}=require('./lib/cofre').montar(app,{db,banco,exigirLogin,configCardapio:CONFIG_CARDAPIO});
 require('./lib/ficha-rotas').montar(app,{db,exigirLogin,exigirApp,pastaDados:PASTA_DADOS,sugerirAdicionais:(entrada)=>ia.sugerirAdicionais(entrada,configIa())});
 require('./lib/implantacao-rotas').montar(app,{db,exigirApp});
+require('./lib/whatsapp').montar(app,{db,exigirApp});
 require('./lib/conferencia-rotas').montar(app,{db,exigirLogin,exigirApp});
 require('./lib/app-resumo').montar(app,{db,exigirApp});
 require('./lib/gestao-pix').montar(app,{db,exigirLogin,exigirAdmin:sessao.exigirAdmin,fila,cardapio,banco,configCardapio:CONFIG_CARDAPIO,pastaPerfis:PASTA_PERFIS});

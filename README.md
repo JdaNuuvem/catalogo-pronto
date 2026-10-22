@@ -155,6 +155,7 @@ mostrar('Contato recebido. A gente chama você no WhatsApp.', true);
 | `OPENROUTER_API_KEY` | uma das duas | leitura das fotos pela IA, via OpenRouter |
 | `IA_PROVEDOR` | não | `anthropic` ou `openrouter`. Sem isso, vale a chave preenchida |
 | `IA_MODELO` | não | troca o modelo. Precisa aceitar imagem |
+| `EVOLUTION_URL` / `EVOLUTION_API_KEY` / `EVOLUTION_INSTANCIA` | não | WhatsApp da operação pela Evolution API. Sem as três, o app abre o WhatsApp do computador com a mensagem pronta |
 | `PHOTOROOM_API_KEY` | não | tira o fundo das fotos dos produtos (Photoroom). Sem ela, as fotos só são padronizadas |
 | `OPENROUTER_SITE` | não | seu domínio, para aparecer nos rankings do OpenRouter |
 | `DOMINIO` | sim | domínio do painel, usado pelo Caddy |

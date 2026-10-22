@@ -32,6 +32,7 @@
 .cabeca{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
 .cabeca h1{margin:0;font-size:28px;letter-spacing:-.4px}
 .cabeca p{margin:4px 0 0}
+.atualizacao{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 14px;border-radius:12px;background:#eaf5ee;color:#2f6d46;margin:0 0 16px}
 .aviso-geral{padding:10px 14px;border-radius:12px;background:#fff1d4;color:#7a5410;margin:0 0 16px}
 
 /* Hoje */
