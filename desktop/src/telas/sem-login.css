@@ -1,0 +1,3 @@
+body{display:grid;place-items:center;padding:24px}
+.caixa{max-width:480px;padding:30px}
+.caixa h1{margin:0 0 8px;font-size:20px}

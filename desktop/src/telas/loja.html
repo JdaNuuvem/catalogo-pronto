@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'">
+<title>Loja</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="loja.css">
+</head>
+<body>
+<header class="barra">
+  <div class="marca"><span class="selo">CP</span><span id="nome"></span></div>
+  <nav id="abas" class="abas" aria-label="Abas da loja"></nav>
+  <button type="button" id="btnVoltar" title="Voltar">←</button>
+  <button type="button" id="btnRecarregar" title="Recarregar">↻</button>
+  <button type="button" id="btnConferir" class="principal" title="Lê o catálogo da loja e compara com o que revisamos">Conferir catálogo</button>
+  <p id="aviso" class="aviso" role="status"></p>
+</header>
+<script src="loja.js"></script>
+</body>
+</html>

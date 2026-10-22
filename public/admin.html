@@ -67,18 +67,26 @@
   .aviso { padding:11px 15px; border-radius:var(--raio); font-size:13px; margin-bottom:16px;
            background:#fbeceb; border:1px solid #e6b5ae; color:var(--erro); }
   .aviso.bom { background:#eaf5ee; border-color:#cfe3d6; color:var(--ok); }
+  .dialogo-cofre { width:min(560px,94vw); border-radius:20px; padding:26px; }
+  .dialogo-cofre h2 { margin:0 0 6px; font-size:18px; }
+  .dialogo-cofre fieldset { border:1px solid var(--linha); border-radius:12px; padding:12px 14px 4px; margin:14px 0 0; display:grid; gap:10px; }
+  .dialogo-cofre legend { font-size:12px; font-weight:600; padding:0 6px; }
+  .dialogo-cofre .revelar { margin:0 0 8px; display:flex; align-items:center; gap:10px; }
+  .dialogo-cofre .senha-revelada { font-size:13px; user-select:all; }
+  .dialogo-cofre .erro-cofre { color:var(--erro); font-size:13px; min-height:1em; }
+  .dialogo-cofre .linha-acoes { justify-content:flex-end; }
   .escondido { display:none !important; }
   .apenas-leitor { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
                    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 </style>
 <link rel="stylesheet" href="/tema.css">
 </head>
-<body data-ajuda-tela="acessos" data-ajuda-admin="true">
+<body data-ajuda-tela="acessos">
 
 <header id="casca" class="casca" data-pagina="admin"></header>
 
 <main>
-  <div class="titulo-pagina"><h1>Configurações</h1><span>Inteligência artificial, lojas conectadas e contatos da landing</span></div>
+  <div class="titulo-pagina"><h1 id="tituloPagina">Lojas e IA</h1><span id="subtituloPagina">Inteligência artificial, lojas conectadas e contatos da landing</span></div>
   <div class="aviso escondido" id="aviso"></div>
 
   <div class="cartao">
@@ -138,6 +146,28 @@
   </div>
 
   <div class="cartao">
+    <h2>Recebimento das mensalidades</h2>
+    <p class="estado" id="estadoPix">Carregando…</p>
+    <form id="formPix">
+      <div class="campos">
+        <div>
+          <label for="pixChave">Chave Pix da operação</label>
+          <input type="text" id="pixChave" required maxlength="140" placeholder="CNPJ, e-mail, telefone ou chave aleatória">
+        </div>
+        <div>
+          <label for="pixNome">Nome de quem recebe</label>
+          <input type="text" id="pixNome" maxlength="120" placeholder="como aparece para o cliente no banco">
+        </div>
+      </div>
+      <p class="dica">
+        É para onde o cliente paga a mensalidade (suporte + plano). Vai pronta na mensagem de
+        WhatsApp dos lembretes. O plano do Cardapio.ai é pago depois, pelo Pix gerado em Cobranças.
+      </p>
+      <p class="linha-acoes"><button type="submit" class="principal">Salvar chave Pix</button></p>
+    </form>
+  </div>
+
+  <div class="cartao">
     <h2>Nova loja</h2>
     <form id="formNova">
       <div class="campos">
@@ -160,6 +190,14 @@
         <div>
           <label for="cdpSenha">Senha do Cardapio.ai</label>
           <input type="password" id="cdpSenha" placeholder="guardada cifrada">
+        </div>
+        <div>
+          <label for="mailEmail">E-mail da loja (Proton)</label>
+          <input type="email" id="mailEmail" placeholder="o e-mail criado para a loja">
+        </div>
+        <div>
+          <label for="mailSenha">Senha do e-mail da loja</label>
+          <input type="password" id="mailSenha" placeholder="guardada cifrada">
         </div>
       </div>
       <p class="dica">
@@ -201,13 +239,33 @@
   <table>
     <thead>
       <tr>
-        <th>Loja</th><th>Acesso ao painel</th><th>Cardapio.ai</th><th>Link público</th><th><span class="apenas-leitor">Ações</span></th>
+        <th>Loja</th><th>Acesso ao painel</th><th>Cardapio.ai</th><th>E-mail da loja</th><th>Link público</th><th><span class="apenas-leitor">Ações</span></th>
       </tr>
     </thead>
     <tbody id="corpo"></tbody>
   </table>
   </div>
 </main>
+
+<dialog id="dialogoCofre" class="dialogo-cofre">
+  <form id="formCofre">
+    <h2 id="cofreTitulo">Logins da loja</h2>
+    <p class="dica">Ficam cifrados no servidor. O app desktop usa estes logins para abrir a loja já conectada,
+      sem mostrar a senha. Cada abertura e cada "Mostrar senha" ficam no histórico da loja.</p>
+    <fieldset><legend>Cardapio.ai</legend>
+      <label>E-mail<input name="cdpEmail" type="email" maxlength="254" autocomplete="off"></label>
+      <label>Senha<input name="cdpSenha" type="password" autocomplete="new-password" placeholder="em branco mantém a atual"></label>
+      <p class="revelar"><button type="button" data-revelar="cardapio">Mostrar senha</button> <code class="senha-revelada"></code></p>
+    </fieldset>
+    <fieldset><legend>E-mail da loja (Proton)</legend>
+      <label>E-mail<input name="mailEmail" type="email" maxlength="254" autocomplete="off"></label>
+      <label>Senha<input name="mailSenha" type="password" autocomplete="new-password" placeholder="em branco mantém a atual"></label>
+      <p class="revelar"><button type="button" data-revelar="email">Mostrar senha</button> <code class="senha-revelada"></code></p>
+    </fieldset>
+    <p class="erro-cofre" id="cofreErro" role="alert"></p>
+    <p class="linha-acoes"><button type="button" id="cofreCancelar">Cancelar</button><button type="submit" class="principal">Salvar logins</button></p>
+  </form>
+</dialog>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -221,6 +279,32 @@ function avisar(texto, bom) {
   el.classList.remove('escondido');
   setTimeout(() => el.classList.add('escondido'), 5000);
 }
+
+// -------------------------------------------------------- chave Pix da operação
+
+async function carregarPix() {
+  const r = await fetch('/api/admin/pix-operacao');
+  if (!r.ok) return;
+  const d = await r.json();
+  $('pixChave').value = d.chave || '';
+  $('pixNome').value = d.nome || '';
+  $('estadoPix').className = d.chave ? 'estado ativo' : 'estado inativo';
+  $('estadoPix').textContent = d.chave
+    ? `As mensagens de cobrança mandam o Pix para ${d.chave}${d.nome ? ` (${d.nome})` : ''}.`
+    : 'Nenhuma chave cadastrada. As mensagens de cobrança vão sem os dados de pagamento.';
+}
+
+$('formPix').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const r = await fetch('/api/admin/pix-operacao', {
+    method: 'PUT', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ chave: $('pixChave').value, nome: $('pixNome').value }),
+  });
+  const corpo = await r.json();
+  if (!r.ok) { avisar(corpo.erro); return; }
+  avisar('Chave Pix salva.', true);
+  carregarPix();
+});
 
 // ------------------------------------------------------ inteligência artificial
 
@@ -318,12 +402,13 @@ $('btnLimparOpenrouter').onclick = () => apagarChave('limparOpenrouter', 'OpenRo
 
 // ------------------------------------------------------------------- lojas
 
+let lojas = [];
 async function carregar() {
   const r = await fetch('/api/admin/lojas');
   if (r.status === 401) { location.href = '/'; return; }
   if (r.status === 403) { document.body.innerHTML = '<main><p>Área restrita ao administrador.</p></main>'; return; }
 
-  const { lojas } = await r.json();
+  ({ lojas } = await r.json());
   $('corpo').innerHTML = lojas.map((l) => `
     <tr>
       <td>
@@ -337,10 +422,15 @@ async function carregar() {
           ? escapar(l.cdp_email) + (l.tem_senha ? ' <span class="marca ok">ok</span>' : ' <span class="marca falta">sem senha</span>')
           : '<span class="marca falta">não conectada</span>'}
       </td>
+      <td>
+        ${l.mail_email
+          ? escapar(l.mail_email) + (l.tem_mail_senha ? ' <span class="marca ok">ok</span>' : ' <span class="marca falta">sem senha</span>')
+          : '<span class="marca falta">não cadastrado</span>'}
+      </td>
       <td>${l.cdp_link ? `<a class="loja-link" href="${escapar(l.cdp_link)}" target="_blank" rel="noopener">abrir</a>` : '—'}</td>
       <td class="acoes">
-        <button type="button" data-acao="credenciais" data-id="${l.id}">Credenciais</button>
-        ${l.admin ? '' : `<button type="button" class="perigo" data-acao="excluir" data-id="${l.id}" data-nome="${escapar(l.nome)}">Excluir</button>`}
+        <button type="button" data-acao="credenciais" data-id="${l.id}">Logins da loja</button>
+        ${l.admin || !souAdmin ? '' : `<button type="button" class="perigo" data-acao="excluir" data-id="${l.id}" data-nome="${escapar(l.nome)}">Excluir</button>`}
       </td>
     </tr>`).join('');
 }
@@ -350,6 +440,7 @@ $('formNova').addEventListener('submit', async (e) => {
   const corpo = {
     nome: $('nome').value, email: $('email').value, senha: $('senha').value,
     cdpEmail: $('cdpEmail').value || null, cdpSenha: $('cdpSenha').value || null,
+    mailEmail: $('mailEmail').value || null, mailSenha: $('mailSenha').value || null,
   };
 
   const r = await fetch('/api/admin/lojas', {
@@ -376,24 +467,43 @@ $('corpo').addEventListener('click', async (e) => {
     return;
   }
 
-  if (botao.dataset.acao === 'credenciais') {
-    const cdpEmail = prompt('E-mail do Cardapio.ai (deixe vazio para não mudar):');
-    if (cdpEmail === null) return;
-    const cdpSenha = prompt('Senha do Cardapio.ai (deixe vazio para não mudar):');
-    if (cdpSenha === null) return;
-
-    const corpo = {};
-    if (cdpEmail) corpo.cdpEmail = cdpEmail;
-    if (cdpSenha) corpo.cdpSenha = cdpSenha;
-    if (!Object.keys(corpo).length) return;
-
-    const r = await fetch(`/api/admin/lojas/${id}`, {
-      method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo),
-    });
-    avisar(r.ok ? 'Credenciais atualizadas.' : (await r.json()).erro, r.ok);
-    carregar();
-  }
+  if (botao.dataset.acao === 'credenciais') abrirCofre(lojas.find((l) => l.id === Number(id)));
 });
+
+// ------------------------------------------------------- cofre de logins
+
+/** Logins da loja: Cardapio.ai e e-mail. Senha em branco mantem a atual. */
+function abrirCofre(loja) {
+  const f = $('formCofre');
+  f.reset(); f.dataset.id = loja.id; $('cofreErro').textContent = '';
+  $('cofreTitulo').textContent = `Logins de ${loja.nome}`;
+  f.elements.cdpEmail.value = loja.cdp_email || '';
+  f.elements.mailEmail.value = loja.mail_email || '';
+  document.querySelectorAll('[data-revelar]').forEach((b) => { b.hidden = !verSenhas; });
+  document.querySelectorAll('.senha-revelada').forEach((el) => { el.textContent = ''; });
+  $('dialogoCofre').showModal();
+}
+
+$('formCofre').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.currentTarget, corpo = {};
+  for (const campo of ['cdpEmail', 'mailEmail']) corpo[campo] = f.elements[campo].value.trim();
+  for (const campo of ['cdpSenha', 'mailSenha']) if (f.elements[campo].value) corpo[campo] = f.elements[campo].value;
+  const r = await fetch(`/api/admin/lojas/${f.dataset.id}`, {
+    method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo),
+  });
+  if (!r.ok) { $('cofreErro').textContent = (await r.json()).erro; return; }
+  $('dialogoCofre').close(); avisar('Logins da loja salvos.', true); carregar();
+});
+
+document.querySelectorAll('[data-revelar]').forEach((b) => b.addEventListener('click', async () => {
+  const r = await fetch(`/api/cofre/lojas/${$('formCofre').dataset.id}/revelar`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ servico: b.dataset.revelar }),
+  });
+  const corpo = await r.json();
+  b.parentElement.querySelector('.senha-revelada').textContent = r.ok ? (corpo.senha || '(sem senha guardada)') : corpo.erro;
+}));
+$('cofreCancelar').onclick = () => $('dialogoCofre').close();
 
 // ------------------------------------------------------ contatos da landing
 
@@ -465,9 +575,26 @@ $('btnCsv').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-carregarIa();
-carregarLeads();
-carregar();
+// O atendente usa esta tela so para as lojas da carteira dele: IA, chave Pix e
+// contatos da landing ficam com o administrador.
+let souAdmin = false, verSenhas = false;
+(async () => {
+  const r = await fetch('/api/eu');
+  if (r.status === 401) { location.href = '/'; return; }
+  const eu = await r.json();
+  souAdmin = !!eu.admin; verSenhas = !!eu.verSenhas;
+  document.body.dataset.ajudaAdmin = String(souAdmin);
+  document.dispatchEvent(new CustomEvent('catalogo-perfil'));
+  if (souAdmin) {
+    carregarIa(); carregarPix(); carregarLeads();
+  } else {
+    for (const id of ['formIa', 'formPix', 'corpoLeads']) $(id).closest('.cartao').classList.add('escondido');
+    $('tituloPagina').textContent = 'Lojas e acessos';
+    $('subtituloPagina').textContent = 'Cadastre as lojas da sua carteira e conecte o login do Cardapio.ai de cada uma';
+    document.querySelector('.titulo-tabela').textContent = 'Lojas da sua carteira';
+  }
+  carregar();
+})();
 </script>
 </body>
 </html>

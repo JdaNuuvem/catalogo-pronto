@@ -19,7 +19,6 @@
       { id: 'lojas-novas', href: '/gestao.html#lojas-novas', texto: 'Lojas novas', icone: 'roteiro', papeis: EQUIPE },
       { id: 'clientes', href: '/gestao.html#clientes', texto: 'Clientes', icone: 'clientes', papeis: EQUIPE },
       { id: 'operacao', href: '/operacao.html', texto: 'Minha carteira', icone: 'carteira', papeis: ['atendente'] },
-      { id: 'implantacoes', href: '/gestao.html#implantacoes', texto: 'Implantações', icone: 'camadas', papeis: EQUIPE },
       { id: 'tarefas', href: '/gestao.html#tarefas', texto: 'Suporte e tarefas', icone: 'suporte', papeis: EQUIPE },
     ] },
     { titulo: 'Dinheiro', itens: [
@@ -29,8 +28,8 @@
     ] },
     { titulo: 'Administração', itens: [
       { id: 'operacao', href: '/operacao.html', texto: 'Cadastro e equipe', icone: 'cadastro', papeis: ADMIN },
-      { id: 'produtos', href: '/?produtos=1', texto: 'Produtos', icone: 'caixa', papeis: ADMIN },
-      { id: 'admin', href: '/admin.html', texto: 'Lojas e IA', icone: 'ajustes', papeis: ADMIN },
+      { id: 'produtos', href: '/?produtos=1', texto: 'Produtos', icone: 'caixa', papeis: EQUIPE },
+      { id: 'admin', href: '/admin.html', texto: 'Lojas e IA', textoAtendente: 'Lojas e acessos', icone: 'ajustes', papeis: EQUIPE },
       { id: 'configuracoes', href: '/gestao.html#configuracoes', texto: 'Equipe e backups', icone: 'backup', papeis: ADMIN },
     ] },
   ];
@@ -43,7 +42,6 @@
     roteiro: '<path d="m3 7 2 2 4-4M3 17l2 2 4-4M13 6h8M13 12h8M13 18h8"/>',
     clientes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>',
     carteira: '<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h2M3 10h18M7 6V4h10v2"/>',
-    camadas: '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
     suporte: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
     recibo: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
     grafico: '<path d="M5 20v-9M11 20V5M17 20v-8M3 20h18"/>',
@@ -67,8 +65,6 @@
       const aba = location.hash.slice(1) || 'inicio';
       return aba.startsWith('cliente-') ? 'clientes' : aba;
     }
-    // A revisao de produtos de uma loja e trabalho dentro da carteira de clientes.
-    if (pagina === 'produtos' && new URLSearchParams(location.search).has('loja')) return 'clientes';
     return pagina;
   }
 
@@ -85,7 +81,7 @@
       const itens = g.itens.filter((i) => i.papeis.includes(papel));
       if (!itens.length) return '';
       return `<div class="casca-grupo"><span class="casca-grupo-titulo">${g.titulo}</span>${itens.map((i) =>
-        `<a href="${i.href}" data-casca-item="${i.id}"${i.id === atual ? ' aria-current="page"' : ''}>${icone(i.icone)}<span>${escapar(i.texto)}</span></a>`).join('')}</div>`;
+        `<a href="${i.href}" data-casca-item="${i.id}"${i.id === atual ? ' aria-current="page"' : ''}>${icone(i.icone)}<span class="casca-texto">${escapar(papel === 'atendente' && i.textoAtendente ? i.textoAtendente : i.texto)}</span></a>`).join('')}</div>`;
     }).join('');
 
     const lateral = !!grupos;
@@ -126,10 +122,23 @@
     }));
   }
 
+  /** Quantos lembretes a pessoa tem hoje, ao lado de "Visao geral" (e no botao do menu no celular). */
+  async function contarLembretes(cabecalho) {
+    const r = await buscar('/api/gestao/lembretes').catch(() => null);
+    if (!r || !r.ok) return;
+    const { total, urgentes } = await r.json();
+    cabecalho.querySelectorAll('.casca-contador').forEach((c) => c.remove());
+    if (!total) return;
+    const marca = `<span class="casca-contador${urgentes ? ' urgente' : ''}" title="${total} lembrete${total === 1 ? '' : 's'} hoje">${total}</span>`;
+    cabecalho.querySelector('[data-casca-item="inicio"]')?.insertAdjacentHTML('beforeend', marca);
+    cabecalho.querySelector('.casca-alternar')?.insertAdjacentHTML('beforeend', marca);
+  }
+
   // Na gestao as telas trocam pelo endereco (#cobrancas, #cliente-3...) sem recarregar a pagina.
   window.addEventListener('hashchange', () => {
     const cabecalho = document.getElementById('casca');
     if (!cabecalho) return;
+    if (cabecalho.querySelector('[data-casca-item="inicio"]')) contarLembretes(cabecalho);
     const atual = itemAtual(cabecalho.dataset.pagina);
     cabecalho.querySelectorAll('.casca-menu a').forEach((a) => {
       if (a.dataset.cascaItem === atual) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -145,6 +154,7 @@
       const r = await buscar('/api/eu').catch(() => null);
       const eu = r && r.ok ? await r.json() : null;
       desenhar(cabecalho, eu);
+      if (eu && EQUIPE.includes(eu.papel)) contarLembretes(cabecalho);
       if (!eu) consulta = null;
     })();
   }

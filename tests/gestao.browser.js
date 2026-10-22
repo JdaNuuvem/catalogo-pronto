@@ -14,7 +14,7 @@ const {chromium}=require('../../automacao/node_modules/playwright');
     page.on('response',r=>{if(r.status()>=400&&!(r.status()===401&&r.url().endsWith('/api/eu'))&&!r.url().endsWith('/favicon.ico'))erros.push(`${r.status()} ${r.url()}`);});
     await page.goto(base);await page.locator('#email').fill('admin@teste.local');await page.locator('#senha').fill(senha);await page.getByRole('button',{name:'Entrar',exact:true}).click();
     await page.waitForURL('**/gestao.html');await page.getByRole('heading',{name:'Seu dia na operação'}).waitFor();
-    for(const tela of ['inicio','clientes','implantacoes','cobrancas','financeiro','repasses','tarefas','configuracoes']){
+    for(const tela of ['inicio','clientes','cobrancas','financeiro','repasses','tarefas','configuracoes']){
       await page.goto(base+'/gestao.html#'+tela);
       await page.locator(`[data-guia="${tela}"]`).waitFor();
       assert.equal(await page.locator('#periodo').isVisible(),['inicio','financeiro'].includes(tela));
@@ -51,9 +51,9 @@ const {chromium}=require('../../automacao/node_modules/playwright');
     assert.equal(await page.locator('#formCliente [name=nome]').inputValue(),'Mercado da Roça');
     await page.goto(base+`/gestao.html?loja=${cid}&orientacao=cadastro#cliente-${cid}`);await page.locator('#cadastroGuiadoTitulo').waitFor();
     await page.getByRole('link',{name:'Voltar ao passo a passo desta loja',exact:true}).click();await page.locator('#lojaOnboarding').waitFor();
-    const quantidades=[1,1,1,2,1,1,2,1,1,1,2];
+    const quantidades=[1,1,1,2,2,1,2,1,1,1,2];
     for(let i=0;i<quantidades.length;i++){await page.locator(`[data-passo="${i}"]`).click();assert.equal(await page.locator('.onboarding-link').count(),quantidades[i]);}
-    await page.locator('[data-passo="4"]').click();assert.equal(await page.locator('.onboarding-link').getAttribute('href'),'https://cardapio.ai/painelweb/listar');
+    await page.locator('[data-passo="4"]').click();assert.equal(await page.locator('.onboarding-link').first().getAttribute('href'),`/ficha.html?loja=${cid}`);assert.equal(await page.locator('.onboarding-link').last().getAttribute('href'),'https://cardapio.ai/painelweb/listar');
     await api('/api/admin/lojas/'+cid,{cdpLink:'https://cardapio.ai/loja-teste'},'PUT');
     await page.reload();await page.locator('[data-passo="7"]').click();
     assert.equal(await page.locator('.onboarding-link').count(),2);
@@ -83,8 +83,11 @@ const {chromium}=require('../../automacao/node_modules/playwright');
     await page.locator('[data-repasse]').click();await form.getByRole('button',{name:'Salvar',exact:true}).click();await page.locator('#formDialog').waitFor({state:'hidden'});
     await page.goto(base+'/gestao.html#financeiro');await page.getByRole('heading',{name:'Financeiro',exact:true}).waitFor();assert.match(await page.locator('#conteudo').innerText(),/77,50/);
     if(process.env.PREVIEW_AJUDA)await page.screenshot({path:process.env.PREVIEW_AJUDA,fullPage:true});
-    await page.goto(base+'/gestao.html#cliente-'+cid);await page.locator('#etapaCliente').click();await form.locator('[name=etapa]').selectOption('materiais');
+    await page.goto(base+'/gestao.html#implantacoes');await page.locator('.andamento').waitFor();assert.ok(page.url().endsWith('#lojas-novas'));
+    await page.goto(base+'/gestao.html#cliente-'+cid);await page.locator('#prazoCliente').click();
     await form.locator('[name=pendencia]').fill('Aguardando preços');await form.getByRole('button',{name:'Salvar',exact:true}).click();await page.locator('#formDialog').waitFor({state:'hidden'});
+    await page.goto(base+'/gestao.html#lojas-novas');await page.locator('.andamento-falta').filter({hasText:'Aguardando preços'}).waitFor();
+    await page.goto(base+'/gestao.html#cliente-'+cid);await page.locator('#tarefaCliente').waitFor();
     await page.locator('#tarefaCliente').click();await form.locator('[name=titulo]').fill('Configurar impressora');await form.locator('[name=minutos]').fill('20');
     await form.getByRole('button',{name:'Salvar',exact:true}).click();await page.locator('#formDialog').waitFor({state:'hidden'});await page.getByText('Configurar impressora',{exact:true}).waitFor();
     const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jv1sAAAAASUVORK5CYII=','base64');
@@ -94,7 +97,8 @@ const {chromium}=require('../../automacao/node_modules/playwright');
     await page.locator('#importar').click();await page.locator('#sim').click();await page.getByText('Enviado para revisão',{exact:true}).waitFor();
     await page.goto(base+`/?produtos=1&loja=${cid}`);await page.locator('input[value="Queijo artesanal"]').waitFor();
     await page.locator('[data-guia="produtos"]').waitFor();
-    assert.equal(await page.locator('.cartao img').first().evaluate(img=>img.complete&&img.naturalWidth>0),true);
+    // Espera a foto carregar de fato: conferir na hora dava falso negativo com a maquina ocupada.
+    await page.waitForFunction(()=>{const img=document.querySelector('.cartao img');return !!img&&img.complete&&img.naturalWidth>0;},null,{timeout:15000});
     const precoSalvo=page.waitForResponse(r=>r.url().endsWith('/lote/item')&&r.request().method()==='PUT');
     await page.locator('[data-campo=preco]').fill('25,90');await precoSalvo;
     const lote=await page.request.get(base+`/api/lojas/${cid}/lote`);assert.equal((await lote.json()).produtos[0].preco,'25.90');
@@ -108,14 +112,21 @@ const {chromium}=require('../../automacao/node_modules/playwright');
     await page.locator('#sair').click();await page.waitForURL(base+'/');await page.locator('#email').fill('ana@teste.local');await page.locator('#senha').fill(senha);await page.getByRole('button',{name:'Entrar',exact:true}).click();await page.waitForURL('**/gestao.html');
     await page.goto(base+'/gestao.html#repasses');await page.getByRole('heading',{name:'Repasses',exact:true}).waitFor();assert.equal(await page.locator('[data-pagar]').count(),0);
     await page.goto(base+`/gestao.html?loja=${cid}#lojas-novas`);await page.locator('#lojaOnboarding').waitFor();
-    await page.locator('[data-passo="7"]').click();assert.equal(await page.locator('#conferirEtapa').count(),0);
+    await page.locator('[data-passo="9"]').click();assert.equal(await page.locator('#conferirEtapa').count(),0);
     await page.locator('[data-passo="5"]').click();for(const i of [0,1]){await page.locator(`.onboarding-checklist [data-item="${i}"]`).click();await page.locator(`.onboarding-checklist [data-item="${i}"]:checked`).waitFor();}
     await page.locator('#conferirEtapa').click();await page.locator('#etapaOnboarding').filter({hasText:'Analisar e revisar os produtos'}).waitFor();
     await page.locator('[data-passo="5"]').click();await page.getByRole('button',{name:'Reabrir esta etapa',exact:true}).waitFor();
     await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     await page.locator('#passoSelecionado').selectOption('8');assert.equal(await page.locator('#etapaOnboarding').innerText(),'Entregar a loja e orientar o cliente');
-    await page.goto(base+`/?produtos=1&loja=${cid}`);await page.locator('#app').waitFor();assert.equal(await page.locator('#btnPublicar').isVisible(),false);
-    await page.locator('[data-guia] summary').click();assert.match(await page.locator('.ajuda-passos').innerText(),/avise o administrador/);
+    // Atendente: Produtos e Lojas e acessos no menu, lista das lojas dele, e publica na loja da carteira.
+    assert.deepEqual(await page.locator('.casca-menu a .casca-texto').allInnerTexts(),['Visão geral','Lojas novas','Clientes','Minha carteira','Suporte e tarefas','Cobranças','Repasses','Produtos','Lojas e acessos']);
+    await page.goto(base+'/?produtos=1');await page.locator('#listaEscolha a').filter({hasText:'Mercado da Roça'}).click();
+    await page.waitForURL(`**/?produtos=1&loja=${cid}`);await page.locator('#app').waitFor();
+    assert.equal(await page.locator('#btnPublicar').evaluate(b=>b.classList.contains('escondido')),false);
+    await page.locator('[data-guia] summary').click();assert.match(await page.locator('.ajuda-passos').innerText(),/Publicar aprovados/);
+    await page.goto(base+'/admin.html');await page.locator('#corpo tr').first().waitFor();
+    assert.equal(await page.locator('#formIa').isVisible(),false);assert.equal(await page.locator('#formPix').isVisible(),false);
+    assert.equal(await page.locator('[data-acao=excluir]').count(),0);assert.match(await page.locator('#corpo').innerText(),/Mercado da Roça/);
     await page.goto(base+'/gestao.html#clientes');await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     assert.deepEqual(erros,[]);console.log('Gestão validada: cobrança, pagamento parcial, custo, repasse, financeiro, implantação, suporte, fotos, lote por cliente, backup restaurável e acesso da equipe no celular.');
   }finally{if(browser)await browser.close();if(processo&&processo.exitCode===null){const fim=new Promise(r=>processo.once('exit',r));processo.kill();await fim;}fs.rmSync(raiz,{recursive:true,force:true});}

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Ficha da loja · Catálogo Pronto</title>
+<link rel="stylesheet" href="/tema.css">
+<link rel="stylesheet" href="/ficha.css">
+</head>
+<body>
+<main class="ficha">
+  <header class="ficha-topo">
+    <div class="ficha-marca"><span class="ficha-selo" aria-hidden="true">CP</span>Catálogo Pronto</div>
+    <h1>Ficha da loja <span id="nomeLoja"></span></h1>
+    <p id="explicacao" class="suave">Preencha com calma: dá para salvar e voltar depois pelo mesmo link. Com estes dados a gente monta sua loja no Cardapio.ai.</p>
+    <ol class="ficha-progresso" id="progresso" aria-label="O que já está completo"></ol>
+    <p id="avisoEquipe" class="ficha-equipe" hidden>
+      <a id="voltarLoja" href="/gestao.html">← Voltar à ficha do cliente</a>
+      <button type="button" id="gerarLink">Gerar link para o cliente</button>
+    </p>
+  </header>
+
+  <p id="aviso" class="ficha-aviso" role="status" hidden></p>
+
+  <form id="formFicha" novalidate>
+    <section class="cartao" data-secao="loja"><h2>1. Sua loja</h2>
+      <div class="ficha-grade">
+        <label>Nome da loja<input name="loja.nome" maxlength="120" required></label>
+        <label>WhatsApp ou telefone da loja<input name="loja.telefone" inputmode="tel" placeholder="(11) 99999-0000"></label>
+        <label>CPF ou CNPJ<input name="loja.documento" inputmode="numeric"></label>
+        <label>Pedido mínimo (R$)<input name="loja.pedido_minimo" inputmode="decimal" placeholder="0,00"></label>
+        <label class="inteira">Recado na loja (opcional)<input name="loja.recado" maxlength="300" placeholder="Ex.: Entregamos de segunda a sábado"></label>
+      </div></section>
+
+    <section class="cartao" data-secao="endereco"><h2>2. Endereço</h2>
+      <div class="ficha-grade">
+        <label>CEP<input name="endereco.cep" inputmode="numeric" placeholder="00000-000"></label>
+        <label class="dupla">Rua<input name="endereco.rua"></label>
+        <label>Número<input name="endereco.numero"></label>
+        <label>Complemento<input name="endereco.complemento"></label>
+        <label>Bairro<input name="endereco.bairro"></label>
+        <label>Cidade<input name="endereco.cidade"></label>
+        <label>UF<input name="endereco.uf" maxlength="2"></label>
+        <label class="dupla">Mostrar no cardápio<select name="endereco.exibicao">
+          <option value="completo">Endereço completo</option><option value="cidade">Só cidade e UF</option><option value="oculto">Não mostrar</option></select></label>
+      </div></section>
+
+    <section class="cartao" data-secao="marca"><h2>3. Sua marca</h2>
+      <div class="ficha-imagens">
+        <div class="ficha-imagem"><span>Logo</span><img id="previewLogo" alt="" hidden><input type="file" id="arquivoLogo" accept="image/png,image/jpeg,image/webp"><small>Quadrado, até 3MB.</small></div>
+        <div class="ficha-imagem"><span>Foto de capa (opcional)</span><img id="previewCapa" alt="" hidden><input type="file" id="arquivoCapa" accept="image/png,image/jpeg,image/webp"><small>Horizontal, até 3MB.</small></div>
+        <label>Cor da marca (opcional)<input name="marca.cor" type="color" value="#a8442a"><small>Se não escolher, usamos as cores do logo.</small></label>
+      </div></section>
+
+    <section class="cartao" data-secao="horarios"><h2>4. Horários</h2>
+      <div id="dias" class="ficha-dias"></div>
+      <label>Pedidos agendados<select name="horarios.agendamento">
+        <option value="sem">Só pedidos para agora</option><option value="hora_e_agendado">Para agora e agendados</option><option value="somente_agendado">Só agendados (encomendas)</option></select></label>
+    </section>
+
+    <section class="cartao" data-secao="entrega"><h2>5. Entrega e retirada</h2>
+      <div class="ficha-opcoes">
+        <label class="checagem"><input type="checkbox" name="entrega.faz_entrega"> Faz entrega</label>
+        <label class="checagem"><input type="checkbox" name="entrega.retirada"> Cliente pode retirar no local</label>
+      </div>
+      <div id="blocoEntrega">
+        <label>Como cobrar a entrega<select name="entrega.modo"><option value="raio">Por distância (km)</option><option value="bairros">Por bairro</option></select></label>
+        <div id="porRaio" class="ficha-grade">
+          <label>Até quantos km vale a taxa base<input name="entrega.raio_base_km" inputmode="decimal" placeholder="3"></label>
+          <label>Taxa base (R$)<input name="entrega.taxa_base" inputmode="decimal" placeholder="5,00"></label>
+          <label>Por km a mais (R$)<input name="entrega.taxa_km" inputmode="decimal" placeholder="1,50"></label>
+          <label>Entrega até (km)<input name="entrega.distancia_maxima_km" inputmode="decimal" placeholder="10"></label>
+          <label>Frete grátis até (km, opcional)<input name="entrega.frete_gratis_km" inputmode="decimal"></label>
+        </div>
+        <div id="porBairro" hidden><div id="bairros" class="ficha-bairros"></div><button type="button" id="maisBairro">+ Adicionar bairro</button></div>
+        <label>Tempo de preparo (minutos)<input name="entrega.tempo_preparo_min" inputmode="numeric" placeholder="30"></label>
+      </div></section>
+
+    <section class="cartao" data-secao="pagamento"><h2>6. Formas de pagamento</h2>
+      <div class="ficha-opcoes">
+        <label class="checagem"><input type="checkbox" name="pagamento.pix"> Pix</label>
+        <label class="checagem"><input type="checkbox" name="pagamento.dinheiro"> Dinheiro</label>
+        <label class="checagem"><input type="checkbox" name="pagamento.credito"> Cartão de crédito</label>
+        <label class="checagem"><input type="checkbox" name="pagamento.debito"> Cartão de débito</label>
+        <label class="checagem"><input type="checkbox" name="pagamento.vale"> Vale-refeição/alimentação</label>
+      </div>
+      <div id="blocoPix" class="ficha-grade">
+        <label>Tipo da chave Pix<select name="pagamento.pix_tipo"><option value="">Escolha</option><option value="cnpj">CNPJ</option><option value="cpf">CPF</option>
+          <option value="celular">Celular</option><option value="email">E-mail</option><option value="aleatoria">Aleatória</option></select></label>
+        <label class="dupla">Chave Pix<input name="pagamento.pix_chave"><small>O cliente vê esta chave no fim do pedido. Confira com cuidado.</small></label>
+      </div></section>
+
+    <section class="cartao" data-secao="produtos"><h2>7. Seus produtos</h2>
+      <div class="ficha-opcoes coluna">
+        <label class="checagem"><input type="radio" name="produtos.origem" value="link"> Já vendo no iFood, Anota Aí ou outro cardápio digital</label>
+        <label class="checagem"><input type="radio" name="produtos.origem" value="fotos"> Vou mandar fotos e preços dos produtos</label>
+        <label class="checagem"><input type="radio" name="produtos.origem" value="pre_cadastrados"> Quero começar com produtos de exemplo do meu ramo</label>
+      </div>
+      <label id="blocoLink">Link do cardápio atual<input name="produtos.link_cardapio" inputmode="url" placeholder="https://www.ifood.com.br/delivery/..."></label>
+    </section>
+
+    <section class="cartao"><h2>Observações</h2>
+      <label>Algo mais que a gente precisa saber?<textarea name="observacoes" maxlength="2000" rows="3"></textarea></label></section>
+
+    <div class="ficha-acoes">
+      <button type="submit" class="principal" id="salvar">Salvar</button>
+      <button type="button" id="enviar" hidden>Enviar para a equipe</button>
+    </div>
+  </form>
+</main>
+<script src="/ficha.js"></script>
+</body>
+</html>

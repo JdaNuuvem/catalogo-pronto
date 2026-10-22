@@ -31,7 +31,8 @@ const TAMANHO_MAXIMO = 3 * 1024 * 1024;
 const MAXIMO_FOTOS = 60;
 
 const CONFIG_CARDAPIO = {
-  baseUrl: 'https://cardapio.ai/painelweb',
+  // Trocavel so para testes, que apontam para uma copia local do painel.
+  baseUrl: process.env.CARDAPIO_BASE_URL || 'https://cardapio.ai/painelweb',
   headless: process.env.HEADLESS !== 'false',
   pausaEntreProdutosMs: Number(process.env.PAUSA_MS || 1200),
 };
@@ -136,6 +137,7 @@ app.get('/api/eu', exigirLogin, (req, res) => {
     nome: req.loja.nome,
     admin: !!req.loja.admin,
     papel: req.loja.admin ? 'admin' : req.loja.papel,
+    verSenhas: !!(req.loja.admin || req.loja.ver_senhas),
     linkPublico: req.loja.cdp_link || null,
     temCredenciais: !!(req.loja.cdp_email && req.loja.cdp_senha),
     publicando: !!(trabalho && trabalho.ativo),
@@ -155,6 +157,11 @@ require('./lib/gestao-rotas').montar(app, {
 });
 require('./lib/gestao-materiais').montar(app, {db,exigirLogin,pastaDados:PASTA_DADOS,fila,configIa,lerCategorias});
 require('./lib/gestao-comprovantes').montar(app,{db,exigirLogin,exigirAdmin:sessao.exigirAdmin,pastaDados:PASTA_DADOS});
+require('./lib/lojas-rotas').montar(app,{db,banco,fila,exigirLogin,exigirAdmin:sessao.exigirAdmin});
+const {exigirApp}=require('./lib/cofre').montar(app,{db,banco,exigirLogin,configCardapio:CONFIG_CARDAPIO});
+require('./lib/ficha-rotas').montar(app,{db,exigirLogin,exigirApp,pastaDados:PASTA_DADOS});
+require('./lib/conferencia-rotas').montar(app,{db,exigirLogin,exigirApp});
+require('./lib/gestao-pix').montar(app,{db,exigirLogin,exigirAdmin:sessao.exigirAdmin,fila,cardapio,banco,configCardapio:CONFIG_CARDAPIO,pastaPerfis:PASTA_PERFIS});
 
 app.get('/api/gestao/clientes/:id/ambiente',exigirLogin,(req,res)=>{
   const c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(req.params.id);
@@ -170,7 +177,6 @@ app.use('/api',(req,res,next)=>{
   exigirLogin(req,res,()=>{
     const u=req.usuario,c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(Number(m[1]));
     if(!c||(!u.admin&&(u.papel!=='atendente'||c.atendente_id!==u.id)))return res.status(403).json({erro:'cliente fora da carteira'});
-    if(!u.admin&&/^\/(publicar|mfa)([/?]|$)/.test(m[2]))return res.status(403).json({erro:'publicacao restrita ao administrador'});
     req.contextoLoja=c;req.loja=c;req.url=m[2];next();
   });
 });
@@ -538,49 +544,6 @@ app.post('/api/admin/ia/testar', exigirLogin, sessao.exigirAdmin, async (req, re
 
 // --------------------------------------------------------------------- admin
 
-app.get('/api/admin/lojas', exigirLogin, sessao.exigirAdmin, (req, res) => {
-  const lojas = db.prepare(`
-    SELECT id, nome, email, admin, cdp_email, cdp_link, criada_em,
-           (cdp_senha IS NOT NULL) AS tem_senha
-    FROM lojas WHERE papel = 'cliente' OR admin = 1 ORDER BY criada_em DESC
-  `).all();
-  res.json({ lojas: lojas.map((l) => ({ ...l, publicando: fila.estaOcupada(l.id) })) });
-});
-
-app.post('/api/admin/lojas', exigirLogin, sessao.exigirAdmin, (req, res) => {
-  const { nome, email, senha, cdpEmail, cdpSenha, cdpLink } = req.body || {};
-  if (!nome || !email || !senha) return res.status(400).json({ erro: 'nome, e-mail e senha sao obrigatorios' });
-  if (String(senha).length < 8) return res.status(400).json({ erro: 'a senha precisa de ao menos 8 caracteres' });
-
-  try {
-    const id = banco.criarLoja(db, { nome, email, senha, cdpEmail, cdpSenha, cdpLink });
-    res.json({ id });
-  } catch (erro) {
-    res.status(400).json({ erro: erro.message });
-  }
-});
-
-app.put('/api/admin/lojas/:id', exigirLogin, sessao.exigirAdmin, (req, res) => {
-  const alvo = db.prepare('SELECT id FROM lojas WHERE id = ?').get(req.params.id);
-  if (!alvo) return res.status(404).json({ erro: 'loja nao encontrada' });
-
-  const { cdpEmail, cdpSenha, cdpLink } = req.body || {};
-  banco.atualizarCredenciais(db, alvo.id, { cdpEmail, cdpSenha, cdpLink });
-  res.json({ ok: true });
-});
-
-app.delete('/api/admin/lojas/:id', exigirLogin, sessao.exigirAdmin, (req, res) => {
-  const temHistorico=db.prepare(`SELECT id FROM cobrancas WHERE loja_id=? OR atendente_id=?
-    UNION SELECT id FROM tarefas WHERE loja_id=? OR responsavel_id=?
-    UNION SELECT id FROM materiais WHERE loja_id=? UNION SELECT id FROM auditoria WHERE loja_id=? OR autor_id=?`).get(...Array(7).fill(req.params.id));
-  if(temHistorico)return res.status(409).json({erro:'conta possui historico; arquive pela ficha do cliente ou desative o atendente'});
-  if (Number(req.params.id) === req.loja.id) {
-    return res.status(400).json({ erro: 'nao da para excluir a propria conta' });
-  }
-  db.prepare('DELETE FROM lojas WHERE id = ?').run(req.params.id);
-  res.json({ ok: true });
-});
-
 // ------------------------------------------------------------------- erros
 
 app.use((erro, req, res, next) => {
@@ -731,6 +694,7 @@ function aplicarLimiteMfa(lojaId, loteId) {
 
 app.listen(PORTA, () => {
   require('./lib/gestao-backup').iniciar(db,PASTA_DADOS);
+  require('./lib/lembretes-email').iniciar(db);
   console.log(`\n  Painel de produtos  ->  http://localhost:${PORTA}`);
   console.log(`  dados em ${PASTA_DADOS}`);
 

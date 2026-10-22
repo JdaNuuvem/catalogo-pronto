@@ -1,0 +1,9 @@
+.barra{height:58px;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(255,255,255,.72);border-bottom:1px solid var(--linha);backdrop-filter:blur(18px)}
+.barra .marca{font-size:14px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barra .selo{width:28px;height:28px;font-size:10.5px;border-radius:9px;flex:none}
+.abas{display:flex;gap:4px;margin-left:10px}
+.abas button{border-color:transparent;background:transparent;color:var(--suave);font-weight:500}
+.abas button[aria-current=true]{background:#fff;color:var(--acento);border-color:rgba(168,68,42,.2);font-weight:600}
+.barra>button{padding:6px 11px}
+.barra>button.principal{padding:7px 14px;font-size:13px}
+.aviso{margin:0 0 0 auto;font-size:12.5px;color:#7a5410;max-width:46%;text-align:right;line-height:1.35}

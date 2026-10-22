@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+<title>Catálogo Pronto</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="inicio.css">
+</head>
+<body>
+<section id="telaEntrar" class="tela-entrar escondido">
+  <form id="formEntrar" class="caixa vidro">
+    <div class="marca"><span class="selo">CP</span>Catálogo Pronto</div>
+    <h1>Entrar no app da equipe</h1>
+    <p class="suave">Use o mesmo e-mail e senha do painel.</p>
+    <label>E-mail<input id="email" type="email" autocomplete="username" required></label>
+    <label>Senha<input id="senha" type="password" autocomplete="current-password" required></label>
+    <details class="avancado"><summary>Endereço do painel</summary>
+      <label>Painel<input id="servidor" type="text" spellcheck="false"></label></details>
+    <p class="erro" id="erroEntrar" role="alert"></p>
+    <button class="principal largo" type="submit" id="btnEntrar">Entrar</button>
+  </form>
+</section>
+
+<section id="telaLojas" class="tela-lojas escondido">
+  <header class="topo vidro">
+    <div class="marca"><span class="selo">CP</span>Catálogo Pronto</div>
+    <span class="quem"><b id="nome"></b><small id="papel"></small></span>
+    <button type="button" id="btnPainel">Abrir o painel</button>
+    <button type="button" id="btnSair">Sair</button>
+  </header>
+  <main>
+    <div class="cabeca">
+      <div><h1>Lojas</h1><p class="suave">Cada loja abre num navegador só dela, já logada no Cardapio.ai e no e-mail.</p></div>
+      <input id="busca" type="search" placeholder="Buscar loja">
+      <button type="button" id="btnAtualizar">Atualizar</button>
+    </div>
+    <p class="aviso escondido" id="aviso" role="status"></p>
+    <div id="lista" class="lista"></div>
+  </main>
+</section>
+<script src="inicio.js"></script>
+</body>
+</html>

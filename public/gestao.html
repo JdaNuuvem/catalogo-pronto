@@ -10,5 +10,14 @@
 </div><p class="ajuda-periodo" id="ajudaPeriodo">De e Até filtram os valores do período. Cards marcados como saldo acumulado e a carteira por cliente consideram todo o histórico.</p><section id="conteudo" aria-live="polite"></section></main></div>
 <dialog id="formDialog"><form id="formDinamico"><h2 id="formTitulo"></h2><p id="formDica" class="suave"></p><div id="formCampos" class="grade"></div>
 <p class="erro" id="formErro" role="alert"></p><div class="acoes"><button type="button" id="cancelar">Cancelar</button><button type="submit" class="principal">Salvar</button></div></form></dialog>
+<dialog id="pixDialog" class="pix-dialogo"><h2 id="pixTitulo">Pix da plataforma</h2><p id="pixSubtitulo" class="suave"></p>
+<ol id="pixEtapas" class="pix-etapas"></ol>
+<form id="pixMfa" class="pix-mfa" hidden><label>Código de verificação que o Cardapio.ai enviou para a loja<input id="pixCodigoMfa" inputmode="numeric" maxlength="8" autocomplete="one-time-code"></label><button class="principal" type="submit">Enviar código</button></form>
+<div id="pixResultado" class="pix-resultado" hidden><img id="pixQr" alt="QR Code do Pix"><div><p class="pix-valor" id="pixValor"></p><p class="suave" id="pixGerado"></p>
+<label>Pix copia e cola<textarea id="pixCopia" rows="4" readonly></textarea></label><p id="pixAviso" class="atencao" hidden></p>
+<div class="acoes-linha"><button id="pixCopiar" class="principal" type="button">Copiar código</button></div>
+<p class="suave">Depois de pagar, use Pagar plano na cobrança para registrar a saída da reserva.</p></div></div>
+<ul id="pixResumo" class="pix-resumo"></ul><p class="erro" id="pixErro" role="alert"></p>
+<div class="acoes"><button type="button" id="pixFechar">Fechar</button></div></dialog>
 <dialog id="confirmDialog"><h2>Confirmar ação</h2><p id="confirmTexto"></p><div class="acoes"><button id="nao">Cancelar</button><button id="sim" class="principal">Confirmar</button></div></dialog>
 </body></html>
