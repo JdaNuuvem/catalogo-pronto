@@ -1,0 +1,99 @@
+/* Implantacao em passos: trilha a esquerda, passo aberto a direita. */
+body{overflow:hidden}
+.guia{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;height:100vh;padding:18px}
+.trilha{padding:16px 10px;overflow-y:auto}
+.trilha-topo{padding:0 8px 12px}
+.trilha-topo b{display:block;font-size:13px;margin-bottom:6px}
+.fase{margin:14px 8px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--suave)}
+.trilha button{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:center;width:100%;text-align:left;
+  border:1px solid transparent;background:transparent;padding:8px;border-radius:12px}
+.trilha button:hover{background:rgba(255,255,255,.7)}
+.trilha button[aria-current=true]{background:#fff;border-color:rgba(168,68,42,.18);box-shadow:0 4px 14px rgba(168,68,42,.1)}
+.trilha .num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font-size:12px;font-weight:700;background:rgba(35,32,28,.07);color:var(--suave)}
+.trilha .feito .num{background:#2f6d46;color:#fff}
+.trilha .pulado .num{background:rgba(35,32,28,.15)}
+.trilha .pronto .num{background:#fff1d4;color:#7a5410}
+.trilha .rotulo{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.trilha .rotulo b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trilha .rotulo small{font-size:11.5px;color:var(--suave)}
+.passo-aberto{max-width:none;margin:0;padding:0 6px 60px 0;overflow-y:auto}
+
+.cabeca-passo{display:flex;align-items:flex-start;gap:16px;margin-bottom:14px}
+.cabeca-passo div{flex:1;min-width:0}
+.cabeca-passo small{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--suave)}
+.cabeca-passo h1{margin:2px 0 4px;font-size:24px;letter-spacing:-.3px}
+.cabeca-passo p{margin:0;color:var(--suave)}
+.estado{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:rgba(35,32,28,.07);color:var(--suave);white-space:nowrap}
+.estado.feito{background:#eaf5ee;color:#2f6d46}.estado.pronto{background:#fff1d4;color:#7a5410}.estado.falta{background:#fbeceb;color:#a32f22}
+.bloco{padding:18px 20px;margin-bottom:14px}
+.bloco h2{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--suave);text-transform:uppercase;letter-spacing:.6px}
+.bloco .dica{margin:0 0 12px;font-size:13px;color:var(--suave)}
+.acoes-passo{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.acoes-passo .espaco{flex:1}
+
+/* Dados da ficha com botao de copiar */
+.dados{display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr) auto;gap:6px 12px;align-items:center;margin:0}
+.dados dt{font-size:12.5px;color:var(--suave)}
+.dados dd{margin:0;font-weight:500;word-break:break-word}
+.dados dd.vazio-dado{color:var(--suave);font-weight:400;font-style:italic}
+.copiar{font-size:12px;padding:4px 10px}
+.cor{display:inline-block;width:18px;height:18px;border-radius:6px;vertical-align:-4px;margin-right:6px;border:1px solid rgba(35,32,28,.15)}
+.imagens-marca{display:flex;gap:14px;flex-wrap:wrap}
+.imagens-marca figure{margin:0;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--suave)}
+.imagens-marca img{max-width:220px;max-height:140px;border-radius:12px;border:1px solid var(--linha);background:#fff;object-fit:contain}
+
+/* Produtos */
+.ferramentas{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ferramentas label{display:flex;align-items:center;gap:6px;margin:0;font-size:13px;color:var(--tinta)}
+.ferramentas input[type=checkbox]{width:auto}
+.progresso-envio{margin-top:12px;display:grid;gap:6px;font-size:13px;color:var(--suave)}
+.numeros-lote{display:flex;gap:18px;font-size:13px;color:var(--suave);margin:2px 0 12px}
+.numeros-lote b{color:var(--tinta);font-size:16px}
+.grade-produtos{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.produto{padding:12px;display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px}
+.produto.enviado{opacity:.7}
+.produto .foto{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.produto img{width:110px;height:110px;object-fit:contain;border-radius:10px;background:#fff;border:1px solid var(--linha)}
+.produto .foto button{font-size:11.5px;padding:4px 6px}
+.produto .campos{display:grid;gap:6px;min-width:0}
+.produto input,.produto textarea{padding:6px 9px;font-size:13px;border-radius:8px}
+.produto textarea{width:100%;resize:vertical;min-height:52px;font:inherit;font-size:13px;border:1px solid rgba(35,32,28,.14);background:rgba(255,255,255,.8)}
+.produto .linha{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:6px}
+.produto .marcas{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px}
+.produto .marcas label{display:flex;align-items:center;gap:5px;margin:0;color:var(--tinta);font-size:12px}
+.produto .marcas input{width:auto}
+.etiqueta{font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(35,32,28,.07);color:var(--suave)}
+.etiqueta.ok{background:#eaf5ee;color:#2f6d46}.etiqueta.ruim{background:#fbeceb;color:#a32f22}.etiqueta.atencao{background:#fff1d4;color:#7a5410}
+.registro{max-height:220px;overflow-y:auto;font-size:12.5px;margin:10px 0 0;padding:0;list-style:none;display:grid;gap:3px}
+.registro li.ruim{color:var(--erro)}.registro li.ok{color:var(--ok)}
+.codigo-manual{display:flex;gap:8px;align-items:center;margin-top:10px}
+.codigo-manual input{width:140px}
+
+/* Adicionais */
+.texto-cliente{white-space:pre-wrap;margin:0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.6);border:1px solid var(--linha);font-size:13.5px}
+.grupos{display:grid;gap:12px}
+.grupo{padding:14px;display:grid;gap:8px}
+.grupo .linha-grupo{display:grid;grid-template-columns:minmax(0,1fr) 80px 80px auto;gap:8px;align-items:end}
+.grupo label{margin:0}
+.grupo .itens{display:grid;gap:6px}
+.grupo .item{display:grid;grid-template-columns:minmax(0,1fr) 110px auto;gap:6px}
+.grupo input{padding:7px 10px;font-size:13px}
+.grupo .categorias{font-size:12px;color:var(--suave)}
+.remover{padding:4px 10px;font-size:12px}
+
+.aviso-flutuante{position:fixed;right:20px;bottom:20px;max-width:420px;margin:0;padding:10px 14px;border-radius:12px;background:#23201c;color:#fff;font-size:13px;box-shadow:var(--sombra)}
+.aviso-flutuante.ruim{background:#a32f22}
+.ferramentas .espaco{flex:1}
+.link-ficha{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:12px;align-items:center}
+.link-ficha small{grid-column:1/-1;color:var(--suave);font-size:12px}
+.kit{display:flex;gap:18px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.kit .qr img{width:180px;height:180px;border-radius:12px;border:1px solid var(--linha);background:#fff}
+.acoes-passo.coluna{flex-direction:column;align-items:stretch}
+.mensagem{width:100%;font:inherit;font-size:13.5px;padding:10px 12px;border-radius:12px;border:1px solid rgba(35,32,28,.14);background:rgba(255,255,255,.85);resize:vertical;margin-bottom:8px}
+.origens{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:12px}
+.origem{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:14px;background:rgba(255,255,255,.6);border:1px solid var(--linha)}
+.origem small{color:var(--suave);font-size:12px;flex:1}
+.origem button{align-self:flex-start}
+.linha-link{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}
+.linha-link input{padding:7px 10px;font-size:13px}
+.sem-foto{width:110px;height:110px;border-radius:10px;border:1px dashed rgba(35,32,28,.25);display:grid;place-items:center;font-size:12px;color:var(--suave);background:rgba(255,255,255,.5)}

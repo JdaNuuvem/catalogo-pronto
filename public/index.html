@@ -117,6 +117,17 @@
   .pronto .link { display:flex; gap:8px; max-width:520px; margin:0 auto; }
   .pronto .link input { font-size:14px; text-align:center; }
 
+  .escolher-loja { margin-bottom:20px; }
+  .escolher-loja h2 { margin:0 0 4px; font-size:17px; }
+  .escolher-loja .sub { margin:0 0 14px; color:var(--suave); font-size:13px; }
+  .lista-escolha { display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
+  .lista-escolha a { display:flex; flex-direction:column; gap:4px; padding:14px 16px; border-radius:14px; text-decoration:none; color:var(--tinta);
+                     background:rgba(255,255,255,.72); border:1px solid rgba(35,32,28,.08); }
+  .lista-escolha a:hover { border-color:var(--acento); }
+  .lista-escolha a small { color:var(--suave); font-size:12px; }
+  .lista-escolha a small.falta { color:var(--erro); }
+  /* Atendente sem loja escolhida: so a escolha aparece. */
+  .so-escolha #app main > :not(.titulo-pagina):not(#escolherLoja) { display:none !important; }
   .escondido { display:none !important; }
 </style>
 <link rel="stylesheet" href="/tema.css">
@@ -148,6 +159,11 @@
 
   <main>
     <div class="titulo-pagina"><h1>Produtos</h1><span id="nomeLoja"></span></div>
+    <section id="escolherLoja" class="escolher-loja escondido" aria-labelledby="tituloEscolha">
+      <h2 id="tituloEscolha">Escolha a loja</h2>
+      <p class="sub" id="dicaEscolha">Os produtos são enviados, revisados e publicados na loja escolhida.</p>
+      <div id="listaEscolha" class="lista-escolha"></div>
+    </section>
     <div class="passos">
       <div class="passo ativo" id="passo1"><b>1</b> Enviar fotos</div>
       <div class="passo" id="passo2"><b>2</b> Revisar</div>
@@ -253,7 +269,8 @@ async function iniciarApp() {
   document.body.dataset.ajudaAdmin=String(!!eu.admin);
   document.body.dataset.ajudaPapel=eu.papel;
   document.dispatchEvent(new CustomEvent('catalogo-perfil'));
-  if (!lojaSelecionada && (eu.papel === 'atendente' || (eu.admin && !new URLSearchParams(location.search).has('produtos')))) {
+  const equipe = eu.admin || eu.papel === 'atendente';
+  if (!lojaSelecionada && equipe && !new URLSearchParams(location.search).has('produtos')) {
     location.replace('/gestao.html');
     return;
   }
@@ -262,11 +279,22 @@ async function iniciarApp() {
   $('telaLogin').classList.add('escondido');
   $('app').classList.remove('escondido');
   $('nomeLoja').textContent = eu.nome;
-  if(lojaSelecionada && !eu.admin) $('btnPublicar').classList.add('escondido');
+
+  // A equipe trabalha nos produtos de uma loja da carteira: sem loja escolhida, mostra a lista.
+  if (!lojaSelecionada && eu.papel === 'atendente') {
+    document.body.classList.add('so-escolha');
+    $('nomeLoja').textContent = 'Escolha a loja para trabalhar';
+    await mostrarEscolha();
+    return;
+  }
+  if (!lojaSelecionada && eu.admin) mostrarEscolha();
+  if (lojaSelecionada && equipe) $('nomeLoja').insertAdjacentHTML('beforeend', ' · <a href="/?produtos=1">Trocar de loja</a>');
 
   const aviso = $('avisoConfig');
   if (!eu.temCredenciais) {
-    aviso.innerHTML = '<strong>Loja ainda não conectada.</strong> Fale com o administrador para ligar sua conta do Cardapio.ai antes de publicar.';
+    aviso.innerHTML = equipe && lojaSelecionada
+      ? '<strong>Loja ainda não conectada.</strong> Informe o login do Cardapio.ai desta loja em <a href="/admin.html">Lojas e acessos</a> antes de publicar.'
+      : '<strong>Loja ainda não conectada.</strong> Fale com o administrador para ligar sua conta do Cardapio.ai antes de publicar.';
     aviso.classList.remove('escondido');
   } else if (!eu.temChaveIa) {
     aviso.innerHTML = '<strong>Leitura de fotos indisponível.</strong> Nenhuma chave de IA está configurada no servidor.';
@@ -283,6 +311,18 @@ async function iniciarApp() {
   await restaurarLote();
 
   if (eu.publicando) { publicando = true; $('painelProgresso').classList.add('aberto'); acompanhar(0); }
+}
+
+/** Lojas que a pessoa pode abrir: todas para o admin, as da carteira para o atendente. */
+async function mostrarEscolha() {
+  const r = await fetch('/api/admin/lojas');
+  if (!r.ok) return;
+  const lojas = (await r.json()).lojas.filter((l) => !l.admin);
+  $('listaEscolha').innerHTML = lojas.length
+    ? lojas.map((l) => `<a href="/?produtos=1&loja=${l.id}"><b>${escapar(l.nome)}</b>
+        <small class="${l.tem_senha ? '' : 'falta'}">${l.tem_senha ? 'Cardapio.ai conectado' : 'Sem login do Cardapio.ai'}</small></a>`).join('')
+    : '<p class="sub">Nenhuma loja na sua carteira ainda. Cadastre uma em <a href="/admin.html">Lojas e acessos</a>.</p>';
+  $('escolherLoja').classList.remove('escondido');
 }
 
 /**

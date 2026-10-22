@@ -1,7 +1,8 @@
 import {financeiro,cobrancas,repasses,configuracoes} from './gestao-financeiro.js';
-import {clientes,implantacoes,tarefas,ficha} from './gestao-operacional.js';
+import {clientes,tarefas,ficha} from './gestao-operacional.js';
 import {guia,explicacaoIndicador} from './gestao-ajuda.js';
 import {onboarding} from './gestao-onboarding.js';
+import {painelLembretes,ligarLembretes} from './gestao-lembretes.js';
 export const $=id=>document.getElementById(id);
 export const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const brl=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((v||0)/100);
@@ -43,19 +44,21 @@ export function conectar(acoes){for(const [selector,fn] of Object.entries(acoes)
 });}
 async function inicio(){
   const hoje=dados.hoje,pendentes=dados.tarefas.filter(t=>t.estado!=='concluida'),vencidas=dados.cobrancas.filter(c=>c.pendente&&c.vencimento<=hoje);
-  $('conteudo').innerHTML=titulo('Seu dia na operação','Pendências da equipe, cobranças e entregas.','<a href="#lojas-novas">Montar uma loja nova passo a passo</a>')+indicadores([
+  $('conteudo').innerHTML=titulo('Seu dia na operação','Pendências da equipe, cobranças e entregas.','<a href="#lojas-novas">Montar uma loja nova passo a passo</a>')+painelLembretes()+indicadores([
     ['Clientes ativos',dados.clientes.filter(c=>c.ativo).length],['Tarefas em aberto',pendentes.length],['Cobranças a conferir',vencidas.length],
     ['Tarefas atrasadas',pendentes.filter(t=>t.prazo&&t.prazo<hoje).length],
     [usuario.admin?'Recebido no período':'Seu repasse disponível',brl(usuario.admin?dados.resumo.recebido:dados.resumo.disponivel)]
     ,...(usuario.admin?[['Suporte mensal contratado',brl(dados.contratos.filter(c=>c.ativo&&c.tipo==='suporte').reduce((s,c)=>s+c.valor,0))]]:[])
-  ])+`<div class="cartao"><h2>Próximas ações</h2>${tabela(['Cliente','Tarefa','Prazo'],pendentes.slice(0,10).map(t=>`<tr><td><a href="#cliente-${t.loja_id}">${esc(t.cliente)}</a></td><td>${esc(t.titulo)}</td><td>${dia(t.prazo)}</td></tr>`))}</div>
-  <div class="cartao"><h2>Cobranças vencidas ou de hoje</h2>${tabela(['Cliente','Componente','Falta receber'],vencidas.slice(0,10).map(c=>`<tr><td>${esc(c.cliente)}</td><td><a href="#cobrancas">${esc(c.descricao)}</a></td><td>${brl(c.pendente)}</td></tr>`))}</div>`;
+  ])+`<div class="cartao"><h2>Próximas ações</h2>${tabela(['Cliente','Tarefa','Prazo'],pendentes.slice(0,10).map(t=>`<tr><td><a href="#cliente-${t.loja_id}">${esc(t.cliente)}</a></td><td>${esc(t.titulo)}</td><td>${dia(t.prazo)}</td></tr>`))}</div>`;
+  ligarLembretes();
 }
 export async function renderizar(){
   const aba=location.hash.slice(1)||'inicio';
   const fichaAberta=aba.startsWith('cliente-');
-  const telas={inicio,clientes,implantacoes,cobrancas,financeiro,repasses,tarefas,configuracoes,'lojas-novas':onboarding};
+  const telas={inicio,clientes,cobrancas,financeiro,repasses,tarefas,configuracoes,'lojas-novas':onboarding};
   if(!usuario.admin&&['financeiro','configuracoes'].includes(aba)){location.hash='inicio';return;}
+  // O quadro de implantacoes virou a visao geral de Lojas novas; links antigos continuam funcionando.
+  if(aba==='implantacoes'){location.replace('#lojas-novas');return;}
   $('periodo').hidden=!['inicio','financeiro'].includes(aba);
   $('ajudaPeriodo').hidden=$('periodo').hidden;
   await (fichaAberta?ficha(Number(aba.slice(8))):(telas[aba]||inicio)());

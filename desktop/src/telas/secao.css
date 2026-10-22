@@ -1,0 +1,27 @@
+/* Paginas das secoes da loja (Resumo, Implantacao, Conferencia). */
+main{max-width:1120px;margin:0 auto;padding:24px 28px 60px}
+.proximo{display:flex;align-items:center;gap:18px;padding:18px 22px;margin-bottom:14px;border-left:5px solid #c9c1b6}
+.proximo.ruim{border-left-color:#d9543c}.proximo.atencao{border-left-color:#e0b453}.proximo.ok{border-left-color:#5aa476}
+.proximo div{flex:1;min-width:0}
+.proximo small{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--suave)}
+.proximo b{display:block;font-size:18px;letter-spacing:-.2px;margin:2px 0}
+.proximo p{margin:0;color:var(--suave);font-size:13px}
+.grade{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.cartao{padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.cartao h2{margin:0;font-size:13px;font-weight:600;color:var(--suave);text-transform:uppercase;letter-spacing:.6px}
+.cartao .valor{font-size:22px;font-weight:700;letter-spacing:-.4px;line-height:1.2}
+.cartao .detalhe{font-size:13px;color:var(--suave);margin:0}
+.cartao .acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+.cartao .acoes button{font-size:13px;padding:7px 12px}
+.barra{height:8px;border-radius:999px;background:rgba(35,32,28,.08);overflow:hidden}
+.barra i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#d9714f,#a8442a)}
+.selo-estado{align-self:flex-start;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:rgba(35,32,28,.07);color:var(--suave)}
+.selo-estado.ok{background:#eaf5ee;color:#2f6d46}.selo-estado.atencao{background:#fff1d4;color:#7a5410}.selo-estado.ruim{background:#fbeceb;color:#a32f22}
+.secao-titulo{font-size:15px;margin:28px 0 12px}
+.lista-passos{display:grid;gap:10px}
+.passo{padding:14px 18px;display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:14px;align-items:center}
+.passo .num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:rgba(35,32,28,.07)}
+.passo.pronto .num{background:#2f6d46;color:#fff}
+.passo b{display:block}
+.passo small{color:var(--suave);font-size:12.5px}
+.passo button{font-size:13px;padding:7px 12px}

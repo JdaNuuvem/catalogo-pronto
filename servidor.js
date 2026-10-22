@@ -16,6 +16,8 @@ const banco = require('./lib/banco');
 const sessao = require('./lib/sessao');
 const cardapio = require('./lib/cardapio');
 const ia = require('./lib/ia');
+const imagem = require('./lib/imagem');
+const importar = require('./lib/importar');
 const { Fila } = require('./lib/fila');
 
 const RAIZ = __dirname;
@@ -31,7 +33,8 @@ const TAMANHO_MAXIMO = 3 * 1024 * 1024;
 const MAXIMO_FOTOS = 60;
 
 const CONFIG_CARDAPIO = {
-  baseUrl: 'https://cardapio.ai/painelweb',
+  // Trocavel so para testes, que apontam para uma copia local do painel.
+  baseUrl: process.env.CARDAPIO_BASE_URL || 'https://cardapio.ai/painelweb',
   headless: process.env.HEADLESS !== 'false',
   pausaEntreProdutosMs: Number(process.env.PAUSA_MS || 1200),
 };
@@ -45,6 +48,20 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(RAIZ, 'public')));
+
+// App desktop: instalador e atualizacoes ficam em <PASTA_DADOS>/app-desktop (latest.yml,
+// catalogo-pronto-setup-X.exe e .blockmap, gerados pelo electron-builder em desktop/dist).
+const PASTA_APP = path.join(PASTA_DADOS, 'app-desktop');
+app.get('/app-desktop/baixar', (req, res) => {
+  const yml = path.join(PASTA_APP, 'latest.yml');
+  const nome = fs.existsSync(yml) && /^path:\s*(\S+)\s*$/m.exec(fs.readFileSync(yml, 'utf8'))?.[1];
+  if (!nome || !fs.existsSync(path.join(PASTA_APP, path.basename(nome)))) return res.status(404).send('Nenhuma versão do app publicada ainda.');
+  res.redirect(`/app-desktop/${encodeURIComponent(path.basename(nome))}`);
+});
+app.use('/app-desktop', express.static(PASTA_APP, {
+  index: false, dotfiles: 'deny',
+  setHeaders: (res, arquivo) => { if (arquivo.endsWith('.yml')) res.set('Cache-Control', 'no-cache'); },
+}));
 
 const exigirLogin = sessao.exigirLogin(db);
 
@@ -136,6 +153,7 @@ app.get('/api/eu', exigirLogin, (req, res) => {
     nome: req.loja.nome,
     admin: !!req.loja.admin,
     papel: req.loja.admin ? 'admin' : req.loja.papel,
+    verSenhas: !!(req.loja.admin || req.loja.ver_senhas),
     linkPublico: req.loja.cdp_link || null,
     temCredenciais: !!(req.loja.cdp_email && req.loja.cdp_senha),
     publicando: !!(trabalho && trabalho.ativo),
@@ -155,6 +173,14 @@ require('./lib/gestao-rotas').montar(app, {
 });
 require('./lib/gestao-materiais').montar(app, {db,exigirLogin,pastaDados:PASTA_DADOS,fila,configIa,lerCategorias});
 require('./lib/gestao-comprovantes').montar(app,{db,exigirLogin,exigirAdmin:sessao.exigirAdmin,pastaDados:PASTA_DADOS});
+require('./lib/lojas-rotas').montar(app,{db,banco,fila,exigirLogin,exigirAdmin:sessao.exigirAdmin});
+const {exigirApp}=require('./lib/cofre').montar(app,{db,banco,exigirLogin,configCardapio:CONFIG_CARDAPIO});
+require('./lib/ficha-rotas').montar(app,{db,exigirLogin,exigirApp,pastaDados:PASTA_DADOS,sugerirAdicionais:(entrada)=>ia.sugerirAdicionais(entrada,configIa())});
+require('./lib/implantacao-rotas').montar(app,{db,exigirApp});
+require('./lib/whatsapp').montar(app,{db,exigirApp});
+require('./lib/conferencia-rotas').montar(app,{db,exigirLogin,exigirApp});
+require('./lib/app-resumo').montar(app,{db,exigirApp});
+require('./lib/gestao-pix').montar(app,{db,exigirLogin,exigirAdmin:sessao.exigirAdmin,fila,cardapio,banco,configCardapio:CONFIG_CARDAPIO,pastaPerfis:PASTA_PERFIS});
 
 app.get('/api/gestao/clientes/:id/ambiente',exigirLogin,(req,res)=>{
   const c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(req.params.id);
@@ -164,13 +190,23 @@ app.get('/api/gestao/clientes/:id/ambiente',exigirLogin,(req,res)=>{
     temChaveIa:ia.configuracaoAtual(configIa()).temChave,categorias:lerCategorias()});
 });
 
+// O app desktop usa as mesmas rotas de produtos, com o token dele e so nas lojas da carteira.
 app.use('/api',(req,res,next)=>{
-  const m=req.url.match(/^\/lojas\/(\d+)(\/(?:analisar|lote|historico|foto|validar|publicar|mfa|eventos)(?:[/?].*)?)$/);
+  const m=req.url.match(/^\/app\/lojas\/(\d+)(\/(?:analisar|impresso|importar|lote|historico|foto|validar|publicar|mfa|eventos)(?:[/?].*)?)$/);
+  if(!m)return next();
+  exigirApp(req,res,()=>{
+    const u=req.loja,c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(Number(m[1]));
+    if(!c||(!u.admin&&(u.papel!=='atendente'||c.atendente_id!==u.id)))return res.status(403).json({erro:'cliente fora da carteira'});
+    req.usuarioApp=u;req.contextoLoja=c;req.loja=c;req.url=m[2];next();
+  });
+});
+
+app.use('/api',(req,res,next)=>{
+  const m=req.url.match(/^\/lojas\/(\d+)(\/(?:analisar|impresso|importar|lote|historico|foto|validar|publicar|mfa|eventos)(?:[/?].*)?)$/);
   if(!m)return next();
   exigirLogin(req,res,()=>{
     const u=req.usuario,c=db.prepare("SELECT * FROM lojas WHERE id=? AND admin=0 AND papel='cliente' AND ativo=1").get(Number(m[1]));
     if(!c||(!u.admin&&(u.papel!=='atendente'||c.atendente_id!==u.id)))return res.status(403).json({erro:'cliente fora da carteira'});
-    if(!u.admin&&/^\/(publicar|mfa)([/?]|$)/.test(m[2]))return res.status(403).json({erro:'publicacao restrita ao administrador'});
     req.contextoLoja=c;req.loja=c;req.url=m[2];next();
   });
 });
@@ -212,6 +248,56 @@ app.post('/api/analisar', exigirLogin, upload.array('fotos', MAXIMO_FOTOS), asyn
   res.json({ loteId: lote.id, produtos });
 });
 
+/** Cardapio impresso: a IA le as fotos do cardapio e cada produto entra no lote sem foto. */
+app.post('/api/impresso', exigirLogin, upload.array('fotos', 6), async (req, res) => {
+  if (!req.files || !req.files.length) return res.status(400).json({ erro: 'nenhuma foto recebida' });
+  try {
+    const lidos = await ia.lerCardapioImpresso(req.files.map((f) => ({ nome: f.originalname, caminho: f.path })), configIa());
+    if (!lidos.length) return res.status(422).json({ erro: 'nao achei produtos nessas fotos' });
+    const lote = banco.garantirLote(db, req.loja.id);
+    banco.adicionarItens(db, lote.id, lidos.map((p) => importar.paraLinha(p, importar.nomeSemFoto(), 'cardapio impresso')));
+    res.json({ total: lidos.length });
+  } catch (e) {
+    res.status(502).json({ erro: `a IA nao conseguiu ler o cardapio: ${e.message}` });
+  } finally {
+    req.files.forEach((f) => fs.rm(f.path, { force: true }, () => {}));
+  }
+});
+
+/**
+ * Cardapio de outro site: o app manda o texto e as imagens da pagina; a IA monta os
+ * produtos e o servidor baixa a foto de cada um.
+ */
+app.post('/api/importar', exigirLogin, async (req, res) => {
+  const texto = String(req.body?.texto || '').slice(0, 300000);
+  const imagens = (Array.isArray(req.body?.imagens) ? req.body.imagens : []).slice(0, 400)
+    .map((im) => ({ i: Number(im?.i), src: String(im?.src || '').slice(0, 2000), alt: String(im?.alt || ''), perto: String(im?.perto || '') }))
+    .filter((im) => Number.isInteger(im.i) && /^https?:\/\//.test(im.src));
+  if (texto.length < 40) return res.status(400).json({ erro: 'a pagina veio sem texto de cardapio' });
+  let lidos;
+  try { lidos = await ia.extrairCardapio({ texto, imagens }, configIa()); } catch (e) { return res.status(502).json({ erro: `a IA nao conseguiu ler a pagina: ${e.message}` }); }
+  if (!lidos.length) return res.status(422).json({ erro: 'nao achei produtos nessa pagina' });
+  const pasta = path.join(PASTA_ENVIOS, String(req.loja.id));
+  const permitirLocal = process.env.NODE_ENV !== 'production' && process.env.IMPORTAR_PERMITIR_LOCAL === '1';
+  const fotos = await importar.baixarTodas(lidos.map((p) => imagens.find((im) => im.i === p.imagem)?.src || null),
+    (src) => importar.baixarImagem(src, { permitirLocal }));
+  const linhas = lidos.map((p, i) => importar.paraLinha(p, fotos[i] ? importar.guardarFoto(pasta, fotos[i], p.titulo) : importar.nomeSemFoto(), 'importado de link'));
+  const lote = banco.garantirLote(db, req.loja.id);
+  banco.adicionarItens(db, lote.id, linhas);
+  res.json({ total: lidos.length, comFoto: fotos.filter(Boolean).length });
+});
+
+/** Poe (ou troca) a foto de um item do lote que ainda nao foi publicado. */
+app.post('/api/lote/foto/:arquivo', exigirLogin, upload.single('foto'), (req, res) => {
+  const lote = banco.loteAberto(db, req.loja.id);
+  if (!req.file) return res.status(400).json({ erro: 'nenhuma foto recebida' });
+  const novo = path.basename(req.file.path);
+  const mudou = lote && db.prepare("UPDATE itens SET arquivo=?, nome_original=? WHERE lote_id=? AND arquivo=? AND estado<>'enviado'")
+    .run(novo, req.file.originalname, lote.id, String(req.params.arquivo)).changes;
+  if (!mudou) { fs.rm(req.file.path, { force: true }, () => {}); return res.status(404).json({ erro: 'item nao encontrado no lote' }); }
+  res.json({ id: novo, previewUrl: `/api/foto/${encodeURIComponent(novo)}` });
+});
+
 function montarProduto(lojaId, imagem, item, erroIa) {
   const arquivo = path.basename(imagem.caminho);
   return {
@@ -243,11 +329,17 @@ function paraLinha(p) {
 }
 
 /** Linha da tabela itens -> ficha da tela. */
-function paraFicha(linha) {
+function paraFicha(linha, lojaId) {
+  const semFoto = importar.semFoto(linha.arquivo);
+  const caminho = lojaId && !semFoto ? caminhoDaFoto(lojaId, linha.arquivo) : null;
+  const tratada = !!caminho && imagem.foiTratada(caminho);
   return {
     id: linha.arquivo,
     arquivo: linha.nome_original || linha.arquivo,
-    previewUrl: `/api/foto/${encodeURIComponent(linha.arquivo)}`,
+    // A versao muda quando a foto e tratada ou desfeita, para a tela nao mostrar a do cache.
+    previewUrl: semFoto ? null : `/api/foto/${encodeURIComponent(linha.arquivo)}${tratada ? `?v=${Math.round(fs.statSync(caminho).mtimeMs)}` : ''}`,
+    semFoto,
+    tratada,
     titulo: linha.titulo,
     descricao: linha.descricao,
     categoria: linha.categoria,
@@ -280,7 +372,7 @@ app.get('/api/lote', exigirLogin, (req, res) => {
       // acompanhamento em vez de mostrar um lote parado.
       publicando: fila.estaOcupada(lote.loja_id),
     },
-    produtos: linhas.map(paraFicha),
+    produtos: linhas.map((l) => paraFicha(l, lote.loja_id)),
   });
 });
 
@@ -308,6 +400,23 @@ app.get('/api/historico', exigirLogin, (req, res) => {
   res.json({ lotes: banco.historico(db, req.loja.id) });
 });
 
+/** Tira o fundo e padroniza a foto de um item do lote (o original fica guardado para desfazer). */
+app.post('/api/foto/:arquivo/tratar', exigirLogin, async (req, res) => {
+  let caminho;
+  try { caminho = caminhoDaFoto(req.loja.id, req.params.arquivo); } catch { return res.status(400).json({ erro: 'foto invalida' }); }
+  if (!fs.existsSync(caminho)) return res.status(404).json({ erro: 'foto nao encontrada' });
+  try {
+    const r = await imagem.tratar(caminho);
+    res.json({ ok: true, ...r, previewUrl: `/api/foto/${encodeURIComponent(path.basename(caminho))}?v=${Date.now()}` });
+  } catch (e) { res.status(500).json({ erro: `nao consegui tratar a foto: ${e.message}` }); }
+});
+
+app.post('/api/foto/:arquivo/desfazer', exigirLogin, (req, res) => {
+  let caminho;
+  try { caminho = caminhoDaFoto(req.loja.id, req.params.arquivo); } catch { return res.status(400).json({ erro: 'foto invalida' }); }
+  res.json({ ok: imagem.desfazer(caminho), previewUrl: `/api/foto/${encodeURIComponent(path.basename(caminho))}?v=${Date.now()}` });
+});
+
 app.get('/api/foto/:arquivo', exigirLogin, (req, res) => {
   let caminho;
   try {
@@ -324,7 +433,7 @@ app.get('/api/foto/:arquivo', exigirLogin, (req, res) => {
 function prepararProdutos(lojaId, lista) {
   return lista.map((p) => ({
     ...p,
-    caminhoImagem: p.id ? caminhoDaFoto(lojaId, p.id) : null,
+    caminhoImagem: p.id && !importar.semFoto(p.id) ? caminhoDaFoto(lojaId, p.id) : null,
   }));
 }
 
@@ -358,7 +467,7 @@ app.post('/api/publicar', exigirLogin, (req, res) => {
   try {
     const pendentes = banco.itensDoLote(db, lote.id)
       .filter((i) => i.aprovado && i.estado !== 'enviado');
-    produtos = prepararProdutos(loja.id, pendentes.map(paraFicha));
+    produtos = prepararProdutos(loja.id, pendentes.map((p) => paraFicha(p)));
   } catch {
     return res.status(400).json({ erro: 'foto invalida no lote' });
   }
@@ -538,49 +647,6 @@ app.post('/api/admin/ia/testar', exigirLogin, sessao.exigirAdmin, async (req, re
 
 // --------------------------------------------------------------------- admin
 
-app.get('/api/admin/lojas', exigirLogin, sessao.exigirAdmin, (req, res) => {
-  const lojas = db.prepare(`
-    SELECT id, nome, email, admin, cdp_email, cdp_link, criada_em,
-           (cdp_senha IS NOT NULL) AS tem_senha
-    FROM lojas WHERE papel = 'cliente' OR admin = 1 ORDER BY criada_em DESC
-  `).all();
-  res.json({ lojas: lojas.map((l) => ({ ...l, publicando: fila.estaOcupada(l.id) })) });
-});
-
-app.post('/api/admin/lojas', exigirLogin, sessao.exigirAdmin, (req, res) => {
-  const { nome, email, senha, cdpEmail, cdpSenha, cdpLink } = req.body || {};
-  if (!nome || !email || !senha) return res.status(400).json({ erro: 'nome, e-mail e senha sao obrigatorios' });
-  if (String(senha).length < 8) return res.status(400).json({ erro: 'a senha precisa de ao menos 8 caracteres' });
-
-  try {
-    const id = banco.criarLoja(db, { nome, email, senha, cdpEmail, cdpSenha, cdpLink });
-    res.json({ id });
-  } catch (erro) {
-    res.status(400).json({ erro: erro.message });
-  }
-});
-
-app.put('/api/admin/lojas/:id', exigirLogin, sessao.exigirAdmin, (req, res) => {
-  const alvo = db.prepare('SELECT id FROM lojas WHERE id = ?').get(req.params.id);
-  if (!alvo) return res.status(404).json({ erro: 'loja nao encontrada' });
-
-  const { cdpEmail, cdpSenha, cdpLink } = req.body || {};
-  banco.atualizarCredenciais(db, alvo.id, { cdpEmail, cdpSenha, cdpLink });
-  res.json({ ok: true });
-});
-
-app.delete('/api/admin/lojas/:id', exigirLogin, sessao.exigirAdmin, (req, res) => {
-  const temHistorico=db.prepare(`SELECT id FROM cobrancas WHERE loja_id=? OR atendente_id=?
-    UNION SELECT id FROM tarefas WHERE loja_id=? OR responsavel_id=?
-    UNION SELECT id FROM materiais WHERE loja_id=? UNION SELECT id FROM auditoria WHERE loja_id=? OR autor_id=?`).get(...Array(7).fill(req.params.id));
-  if(temHistorico)return res.status(409).json({erro:'conta possui historico; arquive pela ficha do cliente ou desative o atendente'});
-  if (Number(req.params.id) === req.loja.id) {
-    return res.status(400).json({ erro: 'nao da para excluir a propria conta' });
-  }
-  db.prepare('DELETE FROM lojas WHERE id = ?').run(req.params.id);
-  res.json({ ok: true });
-});
-
 // ------------------------------------------------------------------- erros
 
 app.use((erro, req, res, next) => {
@@ -687,7 +753,7 @@ function retomarPublicacoes() {
 
     let produtos;
     try {
-      produtos = prepararProdutos(loja.id, pendentes.map(paraFicha));
+      produtos = prepararProdutos(loja.id, pendentes.map((p) => paraFicha(p)));
     } catch {
       banco.devolverParaRevisao(db, lote.id, 'uma das fotos do lote sumiu do disco');
       continue;
@@ -731,6 +797,7 @@ function aplicarLimiteMfa(lojaId, loteId) {
 
 app.listen(PORTA, () => {
   require('./lib/gestao-backup').iniciar(db,PASTA_DADOS);
+  require('./lib/lembretes-email').iniciar(db);
   console.log(`\n  Painel de produtos  ->  http://localhost:${PORTA}`);
   console.log(`  dados em ${PASTA_DADOS}`);
 

@@ -59,3 +59,23 @@
 @media(max-width:1150px){.onboarding-layout{grid-template-columns:230px minmax(0,1fr)}.onboarding-fases{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:800px){.onboarding-layout{grid-template-columns:minmax(0,1fr)}.onboarding-menu{display:none}.onboarding-seletor{display:block}.onboarding-etapa{padding:18px}.onboarding-etapa h3{font-size:20px}}
 @media(max-width:500px){.onboarding-fases{grid-template-columns:1fr}}
+
+/* Quadro de andamento: todas as lojas pela fase do roteiro. */
+.andamento{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0 0 22px}
+.andamento>p{grid-column:1/-1;margin:0;padding:18px;border-radius:14px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8)}
+.andamento-coluna{min-width:0;padding:12px;border-radius:16px;background:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.7);display:flex;flex-direction:column;gap:8px}
+.andamento-coluna h3{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 4px 4px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--suave)}
+.andamento-coluna h3 span{min-width:22px;height:22px;padding:0 7px;border-radius:999px;display:grid;place-items:center;background:rgba(35,32,28,.07);color:var(--tinta);font-size:11.5px}
+.andamento-coluna>p.suave{margin:4px;font-size:12px}
+.andamento-loja{padding:12px;border-radius:12px;background:rgba(255,255,255,.82);border:1px solid rgba(35,32,28,.06);display:grid;gap:8px;box-shadow:0 2px 8px rgba(70,40,30,.05)}
+.andamento-loja.selecionada{border-color:rgba(168,68,42,.45);box-shadow:0 4px 16px rgba(168,68,42,.14)}
+.andamento-abrir{all:unset;cursor:pointer;display:grid;gap:2px;min-width:0}
+.andamento-abrir b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.andamento-abrir span{font-size:12px;color:var(--suave)}
+.andamento-abrir:hover b{color:var(--acento)}
+.andamento-abrir:focus-visible{outline:2px solid var(--acento);outline-offset:3px;border-radius:6px}
+.andamento-info{display:flex;justify-content:space-between;gap:8px;margin:0;font-size:12px;color:var(--suave)}
+.andamento-falta{margin:0;padding:7px 9px;border-radius:8px;background:#fff1d4;color:#7a5410;font-size:12px}
+.andamento-loja .mini{justify-self:start}
+@media(max-width:1250px){.andamento{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.andamento{grid-template-columns:minmax(0,1fr)}}

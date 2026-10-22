@@ -1,0 +1,34 @@
+/* Moldura da janela da loja: menu a esquerda (224px) e topo (64px). O resto e das secoes. */
+body{overflow:hidden}
+.menu{position:fixed;left:0;top:0;bottom:0;width:224px;display:flex;flex-direction:column;padding:16px 12px;
+  background:rgba(255,255,255,.62);border-right:1px solid var(--linha);backdrop-filter:blur(18px)}
+.menu .marca{gap:10px;padding:4px 6px 18px;font-size:14px}
+.menu .marca div{display:flex;flex-direction:column;min-width:0}
+.menu .marca b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.menu .marca small{font-size:11px;color:var(--suave);font-weight:500}
+.secoes{display:flex;flex-direction:column;gap:2px;flex:1}
+.secoes button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:1px solid transparent;background:transparent;
+  padding:10px 11px;border-radius:11px;color:#4a443d;font-weight:500}
+.secoes button:hover{background:rgba(255,255,255,.7)}
+.secoes button[aria-current=true]{background:#fff;color:var(--acento);font-weight:650;border-color:rgba(168,68,42,.15);box-shadow:0 4px 14px rgba(168,68,42,.1)}
+.secoes .ponto{margin-left:auto;width:8px;height:8px;border-radius:50%;background:#d9543c}
+.secoes button>span:not(.falta){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.secoes .falta{margin-left:auto;flex:none;font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;background:#fbeceb;color:var(--erro);white-space:nowrap}
+.icone{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.plano{margin-top:10px;padding:10px 12px;border-radius:12px;font-size:12px;line-height:1.4;background:rgba(234,245,238,.95);color:#2f6d46}
+.plano.vencendo{background:#fbeceb;color:#a32f22}
+.plano b{display:block;font-size:12.5px}
+.topo{position:fixed;left:224px;right:0;top:0;height:64px;display:flex;align-items:center;gap:12px;padding:0 20px;
+  background:rgba(255,255,255,.72);border-bottom:1px solid var(--linha);backdrop-filter:blur(18px)}
+.topo .titulo{display:flex;flex-direction:column;min-width:0;margin-right:auto}
+.topo h1{margin:0;font-size:17px;letter-spacing:-.2px}
+.topo small{font-size:12px;color:var(--suave);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px}
+.controles{display:flex;gap:6px}
+.controles button{padding:7px 11px}
+.topo .principal{font-size:13px;padding:8px 14px}
+/* Sombra e borda atras do site (Cardapio.ai, e-mail), que o processo principal desenha com 12px de margem. */
+.palco{position:fixed;left:236px;top:76px;right:12px;bottom:12px;border-radius:14px;background:#fff;
+  border:1px solid rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(35,32,28,.06),0 14px 40px rgba(70,40,30,.14)}
+/* Aviso fica na propria barra: as secoes sao desenhadas por cima de tudo abaixo dela. */
+.aviso{margin:0;max-width:42%;padding:7px 12px;border-radius:10px;font-size:12.5px;line-height:1.3;
+  background:#fff1d4;color:#6b4a0c;border:1px solid #efd9a6;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}

@@ -1,24 +1,19 @@
 import {$,dados,usuario,esc,brl,dia,tabela,titulo,campo,dialogo,conectar,api,carregar,confirmar,opcoesClientes,aviso} from './gestao.js';
 import {novaCobranca,novoContrato} from './gestao-financeiro.js';
 import {roteiroResumo} from './gestao-onboarding.js';
-const etapas={dados:'Dados da loja',contas:'Contas criadas',branding:'Identidade visual',materiais:'Fotos e preços',revisao:'Revisão dos produtos',publicacao:'Publicação',conferencia:'Conferência',entregue:'Entregue'};
 const estados={pendente:'Pendente',andamento:'Em andamento',aguardando_cliente:'Aguardando cliente',concluida:'Concluída'};
 export async function clientes(){
   $('conteudo').innerHTML=titulo('Clientes','Abra a ficha para acompanhar o trabalho da loja.',usuario.admin?'<a href="/operacao.html">Cadastrar cliente</a>':'')+
     '<div class="filtros"><label>Buscar<input id="buscaCliente" placeholder="Nome, responsável ou contato"></label><label>Situação<select id="filtroCliente"><option value="ativo">Ativos</option><option value="todos">Todos</option><option value="arquivo">Arquivados</option></select></label></div><div id="listaClientes"></div>';
   const listar=()=>{const busca=$('buscaCliente').value.toLowerCase(),filtro=$('filtroCliente').value;
-    $('listaClientes').innerHTML=tabela(['Loja','Contato','Responsável','Implantação','Passo a passo','Ações'],dados.clientes.filter(c=>(filtro==='todos'||(filtro==='ativo'?c.ativo:!c.ativo))&&`${c.nome} ${c.contato} ${c.atendente}`.toLowerCase().includes(busca)).map(c=>`<tr><td><a href="#cliente-${c.id}">${esc(c.nome)}</a><small>${esc(c.email)}</small></td><td>${esc(c.contato)}<small>${esc(c.whatsapp)}</small></td><td>${esc(c.atendente||'Sem responsável')}</td><td>${etapas[c.implantacao_etapa||'dados']}<small>${c.ativo?'':'Arquivado'}</small></td><td>${roteiroResumo(c)}</td><td><a href="#cliente-${c.id}">Abrir ficha</a></td></tr>`));};
+    $('listaClientes').innerHTML=tabela(['Loja','Contato','Responsável','Passo a passo','Ações'],dados.clientes.filter(c=>(filtro==='todos'||(filtro==='ativo'?c.ativo:!c.ativo))&&`${c.nome} ${c.contato} ${c.atendente}`.toLowerCase().includes(busca)).map(c=>`<tr><td><a href="#cliente-${c.id}">${esc(c.nome)}</a><small>${esc(c.email)}</small>${c.ativo?'':'<small>Arquivado</small>'}</td><td>${esc(c.contato)}<small>${esc(c.whatsapp)}</small></td><td>${esc(c.atendente||'Sem responsável')}</td><td>${roteiroResumo(c)}</td><td><a href="#cliente-${c.id}">Abrir ficha</a></td></tr>`));};
   listar();$('buscaCliente').oninput=listar;$('filtroCliente').onchange=listar;
 }
-function editarImplantacao(c){dialogo('Etapa da implantação',[
-  campo('etapa','Etapa','select',c.implantacao_etapa||'dados',{opcoes:Object.entries(etapas)}),campo('prazo','Prazo de entrega','date',c.implantacao_prazo||'',{required:false}),
+/** Prazo de entrega e o que falta para a loja. A fase vem do roteiro de lojas novas. */
+export function editarPrazo(c){dialogo('Prazo e pendência',[
+  campo('prazo','Prazo de entrega','date',c.implantacao_prazo||'',{required:false}),
   campo('pendencia','O que falta / motivo da espera','textarea',c.pendencia||'',{required:false})
-],b=>api(`/api/gestao/implantacoes/${c.id}`,'PUT',b),'Registre pendências de fotos, preços, aprovação e configuração.');}
-export async function implantacoes(){
-  $('conteudo').innerHTML=titulo('Implantações','Etapas, responsáveis e pendências de cada entrega.')+
-    `<div class="quadro">${Object.entries(etapas).map(([e,nome])=>`<article><h3>${nome}</h3>${dados.clientes.filter(c=>c.ativo&&(c.implantacao_etapa||'dados')===e).map(c=>`<div class="cartao"><a href="#cliente-${c.id}"><b>${esc(c.nome)}</b></a>${roteiroResumo(c)}<p>${esc(c.atendente||'Sem responsável')}<br>Prazo: ${dia(c.implantacao_prazo)}</p>${c.pendencia?`<p class="atencao">${esc(c.pendencia)}</p>`:''}<button data-etapa="${c.id}">Atualizar etapa</button></div>`).join('')||'<p class="suave">Nenhuma loja nesta etapa.</p>'}</article>`).join('')}</div>`;
-  conectar({'[data-etapa]':b=>editarImplantacao(dados.clientes.find(c=>c.id===Number(b.dataset.etapa)))});
-}
+],b=>api(`/api/gestao/implantacoes/${c.id}`,'PUT',b),'Registre o que falta, como fotos, preços, aprovação ou configuração.');}
 function editarTarefa(t,cid){
   const v=t||{},cliente=dados.clientes.find(c=>c.id===(cid||t?.loja_id));
   const campos=[...(!t?[campo('loja_id','Cliente','select',cid||'',{opcoes:opcoesClientes()})]:[]),
@@ -44,7 +39,9 @@ export async function tarefas(){
 export async function ficha(cid){
   const rota=location.hash;
   const c=dados.clientes.find(c=>c.id===cid);if(!c){$('conteudo').innerHTML='<p>Cliente fora da sua carteira.</p>';return;}
-  const d=await api(`/api/gestao/clientes/${cid}`),cs=dados.cobrancas.filter(b=>b.loja_id===cid);
+  const [d,fi,co]=await Promise.all([api(`/api/gestao/clientes/${cid}`),api(`/api/gestao/clientes/${cid}/ficha`),api(`/api/gestao/clientes/${cid}/conferencia`)]),cs=dados.cobrancas.filter(b=>b.loja_id===cid);
+  const situacaoConferencia={ok:'Pronta para entregar',atencao:'Pode entregar, vale melhorar',bloqueante:'Corrigir antes de entregar'};
+  const secoesProntas=Object.values(fi.completo).filter(Boolean).length,totalSecoes=Object.keys(fi.completo).length;
   if(location.hash!==rota)return;
   const params=new URLSearchParams(location.search),cadastroGuiado=params.get('orientacao')==='cadastro'&&Number(params.get('loja'))===cid;
   const orientacao=cadastroGuiado?`<section class="ficha-cadastro-guiado" data-guia="ficha" aria-labelledby="cadastroGuiadoTitulo"><span class="sobretitulo">PASSO 1 · CONFERIR O CADASTRO</span><h2 id="cadastroGuiadoTitulo">Confira estes dados antes de continuar</h2><p>Você está na ficha de <b>${esc(c.nome)}</b>. Nesta etapa, confira quem é o contato do cliente e quem da sua equipe vai atender essa loja.</p>
@@ -55,9 +52,13 @@ export async function ficha(cid){
     <div class="acoes-linha"><button id="editarCadastroGuiado" class="principal">Editar a pessoa de contato</button>${usuario.admin?`<a class="onboarding-link" href="/operacao.html?editarLoja=${c.id}">Ajustar WhatsApp e atendente</a>`:''}<a class="onboarding-link" href="/gestao.html?loja=${c.id}#lojas-novas">Voltar ao passo a passo desta loja</a></div></section>`:'';
   $('conteudo').innerHTML=orientacao+titulo(c.nome,`${c.atendente||'Sem responsável'} · ${c.email}`,`<a href="#clientes">Voltar à carteira</a>${c.ativo?`<a href="/gestao.html?loja=${c.id}#lojas-novas">Passo a passo desta loja</a>`:''}<button id="editarFicha">Editar contato</button>${usuario.admin&&c.ativo?'<button id="cobrarCliente">Nova cobrança</button><button id="contratoCliente">Contrato mensal</button>':''}`)+
     `<div class="quadro"><article><h3>Contato</h3><p>${esc(c.contato||'Contato não informado')}<br>${esc(c.whatsapp)}</p><p class="respostas">${esc(c.observacoes)}</p>${usuario.admin?`<button id="arquivar">${c.ativo?'Arquivar cliente':'Reativar cliente'}</button>`:''}</article>
-    <article><h3>Implantação</h3><p>${etapas[c.implantacao_etapa||'dados']}<br>Prazo: ${dia(c.implantacao_prazo)}</p><p>${esc(c.pendencia||'Sem pendência registrada')}</p><button id="etapaCliente">Atualizar etapa</button></article>
+    ${c.ativo?`<article><h3>Passo a passo</h3>${roteiroResumo(c)}<p>Prazo: ${dia(c.implantacao_prazo)}<br>${esc(c.pendencia||'Sem pendência registrada')}</p><div class="acoes-linha"><button id="prazoCliente">Prazo e pendência</button><a href="/gestao.html?loja=${c.id}#lojas-novas">Abrir o roteiro</a></div></article>`:''}
+    ${c.ativo?`<article><h3>Ficha de implantação</h3><p>${secoesProntas} de ${totalSecoes} seções completas${fi.enviada_em?'<br>Enviada pelo cliente':''}</p>
+      <div class="acoes-linha"><a href="/ficha.html?loja=${c.id}">Abrir ficha</a><button id="linkFicha">Mandar link no WhatsApp</button></div></article>`:''}
+    ${c.ativo?`<article><h3>Plano no Cardapio.ai</h3>${c.cdp_plano_lido_em?`<p><b>${esc(c.cdp_plano||'Plano')}</b>${c.cdp_plano_valor?` · ${brl(c.cdp_plano_valor)}${c.cdp_plano_periodo?` (${esc(c.cdp_plano_periodo)})`:''}`:''}<br>${c.cdp_plano_valido_ate?`Válido até ${dia(c.cdp_plano_valido_ate)}`:c.cdp_plano_teste_ate?`Teste grátis até ${dia(c.cdp_plano_teste_ate)}`:''}${c.cdp_plano_situacao?`<br>${esc(c.cdp_plano_situacao)}`:''}</p><p class="suave">Lido pelo app desktop em ${esc(new Date(c.cdp_plano_lido_em.replace(' ','T')+'Z').toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}))}.</p>`:'<p class="suave">Ainda não lido. O app desktop lê o plano sozinho quando alguém abre a loja.</p>'}</article>`:''}
+    ${c.ativo?`<article><h3>Conferência do catálogo</h3>${co.situacao?`<p><b>${situacaoConferencia[co.situacao]}</b><br>${co.totais.produtos??0} produtos na loja · ${co.problemas.length} ponto(s) a ver</p><p class="suave">Conferido pelo app em ${esc(new Date(co.criada_em.replace(' ','T')+'Z').toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}))}${co.autor?` por ${esc(co.autor)}`:''}.</p>`:'<p class="suave">Ainda não conferido. No app desktop, abra a loja e clique em Conferir catálogo.</p>'}</article>`:''}
     <article><h3>Produtos</h3><p>${c.produtos_contratados} contratados · 25 incluídos<br>Excedente: ${brl(c.adicional_centavos)} por produto</p>${c.ativo?`<a href="/?produtos=1&loja=${c.id}">Abrir revisão de produtos</a>`:''}<p class="suave">A publicação fica disponível ao administrador.</p></article>
-    ${c.ativo?`<article><h3>Passo a passo</h3>${roteiroResumo(c)}<p><a href="/gestao.html?loja=${c.id}#lojas-novas">Abrir o roteiro desta loja</a></p></article>`:''}</div>
+</div>
     <div class="cartao espaco"><h2>Cobranças da loja</h2>${tabela(['Serviço','Vencimento','Valor','Recebido','Situação'],cs.map(b=>`<tr><td><a href="#cobrancas">${esc(b.descricao)}</a></td><td>${dia(b.vencimento)}</td><td>${brl(b.valor)}</td><td>${brl(b.recebido)}</td><td>${esc(b.estado)}</td></tr>`))}</div>
     <div class="cartao"><div class="titulo"><h2>Materiais e fotos</h2>${usuario.admin&&c.ativo?'<button id="importar">Enviar materiais organizados para revisão</button>':''}</div>
     ${c.ativo?'<div class="linha-upload"><label>Finalidade<select id="finalidadeFoto"><option value="produto">Produtos</option><option value="branding">Logo / identidade visual</option></select></label><label class="arquivo">Fotos JPEG, PNG ou WebP<input id="fotos" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><button id="enviarFotos">Enviar fotos</button></div>':''}
@@ -66,7 +67,18 @@ export async function ficha(cid){
     <div class="cartao"><h2>Histórico da loja</h2>${d.historico.map(h=>`<div class="auditoria">${esc(h.criado_em)} · ${esc(h.acao)}</div>`).join('')||'<p class="suave">As próximas ações aparecerão aqui.</p>'}</div>`;
   $('editarFicha').onclick=()=>dialogo('Contato e observações',[campo('contato','Nome da pessoa de contato do cliente','text',c.contato,{required:false}),campo('observacoes','Observações do atendimento','textarea',c.observacoes,{required:false})],b=>api(`/api/gestao/clientes/${cid}`,'PUT',b),'Informe a pessoa com quem você fala pelo cliente. O nome da loja aparece separado no cadastro.');
   if($('editarCadastroGuiado'))$('editarCadastroGuiado').onclick=$('editarFicha').onclick;
-  $('etapaCliente').onclick=()=>editarImplantacao(c);
+  if($('prazoCliente'))$('prazoCliente').onclick=()=>editarPrazo(c);
+  // O link vai pronto numa mensagem; o cliente preenche pelo celular, sem login.
+  if($('linkFicha'))$('linkFicha').onclick=async()=>{
+    const {url}=await api(`/api/gestao/clientes/${c.id}/ficha/link`,'POST',{});
+    const nome=(c.contato||'').trim().split(/\s+/)[0];
+    const texto=`Olá${nome?`, ${nome}`:''}! Para montarmos a loja ${c.nome} no Cardapio.ai, preencha esta ficha pelo celular (dá para salvar e voltar depois):
+${url}`;
+    const numero=c.whatsapp?(c.whatsapp.length<=11?'55'+c.whatsapp:c.whatsapp):'';
+    await navigator.clipboard?.writeText(texto).catch(()=>{});
+    if(numero)window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`,'_blank','noopener');
+    aviso(numero?'Link gerado e conversa aberta no WhatsApp. O texto também foi copiado.':'Link gerado e copiado. Esta loja não tem WhatsApp cadastrado.',true);
+  };
   if(c.ativo){$('tarefaCliente').onclick=()=>editarTarefa(null,cid);
     $('enviarFotos').onclick=async()=>{const btn=$('enviarFotos'),arquivos=$('fotos').files;if(!arquivos.length)return aviso('Selecione as fotos.');
       btn.disabled=true;try{const form=new FormData();form.append('finalidade',$('finalidadeFoto').value);for(const a of arquivos)form.append('fotos',a);const r=await fetch(`/api/gestao/clientes/${cid}/materiais`,{method:'POST',body:form});const b=await r.json();if(!r.ok)throw new Error(b.erro);await carregar();aviso('Materiais recebidos.',true);}catch(e){aviso(e.message);}finally{btn.disabled=false;}};

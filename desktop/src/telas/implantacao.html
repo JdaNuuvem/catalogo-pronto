@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+<title>Implantação</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="secao.css">
+<link rel="stylesheet" href="implantacao.css">
+</head>
+<body>
+<div class="guia">
+  <aside class="trilha vidro">
+    <div class="trilha-topo">
+      <b id="contagem">0 de 10 passos</b>
+      <div class="barra"><i id="barraGeral" data-pct="0"></i></div>
+    </div>
+    <nav id="trilha" aria-label="Passos da implantação"></nav>
+  </aside>
+  <main class="passo-aberto" id="passo" aria-live="polite"></main>
+</div>
+<p id="aviso" class="aviso-flutuante" role="status" hidden></p>
+<script src="implantacao.js"></script>
+</body>
+</html>

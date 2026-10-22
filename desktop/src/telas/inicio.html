@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+<title>Catálogo Pronto</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="secao.css">
+<link rel="stylesheet" href="inicio.css">
+</head>
+<body>
+<section id="telaEntrar" class="tela-entrar" hidden>
+  <form id="formEntrar" class="caixa vidro">
+    <div class="marca"><span class="selo">CP</span>Catálogo Pronto</div>
+    <h1>Entrar no app da equipe</h1>
+    <p class="suave">Use o mesmo e-mail e senha do painel.</p>
+    <label>E-mail<input id="email" type="email" autocomplete="username" required></label>
+    <label>Senha<input id="senha" type="password" autocomplete="current-password" required></label>
+    <details class="avancado"><summary>Endereço do painel</summary>
+      <label>Painel<input id="servidor" type="text" spellcheck="false"></label></details>
+    <p class="erro" id="erroEntrar" role="alert"></p>
+    <button class="principal largo" type="submit" id="btnEntrar">Entrar</button>
+  </form>
+</section>
+
+<section id="telaBloqueio" class="tela-entrar" hidden>
+  <form id="formBloqueio" class="caixa vidro">
+    <div class="marca"><span class="selo">CP</span>Catálogo Pronto</div>
+    <h1>App bloqueado</h1>
+    <p class="suave">Ficou um tempo sem uso. Digite a senha de <b id="nomeBloqueio"></b> para voltar às lojas abertas.</p>
+    <label>Senha<input id="senhaBloqueio" type="password" autocomplete="current-password" required></label>
+    <p class="erro" id="erroBloqueio" role="alert"></p>
+    <button class="principal largo" type="submit" id="btnDesbloquear">Desbloquear</button>
+    <button class="largo trocar" type="button" id="btnTrocarConta">Entrar com outra conta</button>
+  </form>
+</section>
+
+<div id="app" class="app" hidden>
+  <aside class="menu">
+    <div class="marca"><span class="selo">CP</span>Catálogo Pronto</div>
+    <nav class="vistas" aria-label="Menu">
+      <button type="button" data-vista="hoje" aria-current="true"><span data-icone="hoje"></span>Hoje<i id="contaHoje" class="conta" hidden></i></button>
+      <button type="button" data-vista="lojas"><span data-icone="lojas"></span>Lojas<i id="contaLojas" class="conta neutra" hidden></i></button>
+    </nav>
+    <div class="conta-usuario">
+      <span class="quem"><b id="nome"></b><small id="papel"></small><small id="versao"></small></span>
+      <button type="button" id="btnPainel"><span data-icone="painel"></span>Abrir o painel web</button>
+      <button type="button" id="btnSair"><span data-icone="sair"></span>Sair</button>
+    </div>
+  </aside>
+
+  <main class="conteudo">
+    <p class="aviso-geral" id="aviso" role="status" hidden></p>
+    <div class="atualizacao" id="atualizacao" hidden><span>Versão <b id="versaoNova"></b> do app pronta.</span>
+      <button type="button" class="principal" id="btnAtualizar">Reiniciar e atualizar</button></div>
+
+    <section id="vistaHoje" class="vista">
+      <header class="cabeca"><div><h1>Hoje</h1><p class="suave" id="dataHoje"></p></div>
+        <button type="button" data-atualizar>Atualizar</button></header>
+      <div id="numeros" class="numeros"></div>
+      <h2 class="sub">Lembretes</h2>
+      <div id="lembretes" class="lista-lembretes"></div>
+      <h2 class="sub">Próximo passo das lojas</h2>
+      <div id="pendentes" class="lista-lembretes"></div>
+    </section>
+
+    <section id="vistaLojas" class="vista" hidden>
+      <header class="cabeca"><div><h1>Lojas</h1><p class="suave">Cada loja abre numa janela só dela, já logada no Cardapio.ai e no e-mail.</p></div>
+        <button type="button" data-atualizar>Atualizar</button></header>
+      <div class="filtros">
+        <input id="busca" type="search" placeholder="Buscar loja ou atendente">
+        <div class="chips" id="filtros" role="group" aria-label="Filtrar lojas">
+          <button type="button" data-filtro="todas" aria-pressed="true">Todas</button>
+          <button type="button" data-filtro="implantacao" aria-pressed="false">Em implantação</button>
+          <button type="button" data-filtro="ativa" aria-pressed="false">Ativas</button>
+          <button type="button" data-filtro="alerta" aria-pressed="false">Pedem atenção</button>
+        </div>
+      </div>
+      <div id="lista" class="lista-lojas"></div>
+    </section>
+  </main>
+</div>
+<script src="icones.js"></script>
+<script src="passos.js"></script>
+<script src="inicio.js"></script>
+</body>
+</html>
