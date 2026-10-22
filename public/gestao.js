@@ -16,7 +16,7 @@ export async function api(url,method='GET',body){
   const d=await r.json();if(!r.ok)throw new Error(d.erro||'Não foi possível concluir.');return d;
 }
 export function tabela(cabecalhos,linhas){return `<div class="tabela"><table><thead><tr>${cabecalhos.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${linhas.length?linhas.join(''):`<tr><td colspan="${cabecalhos.length}" class="vazio">Nenhum registro neste momento.</td></tr>`}</tbody></table></div>`;}
-export function indicadores(itens){return `<div class="indicadores">${itens.map(([nome,valor,dica])=>{const [explicacao,calculo]=explicacaoIndicador(nome);return `<article><span>${esc(nome)}</span><strong>${esc(valor)}</strong>${dica?`<small>${esc(dica)}</small>`:''}${explicacao?`<p class="indicador-descricao">${esc(explicacao)}</p>`:''}${calculo?`<details class="indicador-ajuda"><summary>Entenda o cálculo</summary><p>${esc(calculo)}</p></details>`:''}</article>`;}).join('')}</div>`;}
+export function indicadores(itens){return `<div class="indicadores">${itens.map(([nome,valor,dica])=>{const [explicacao,calculo]=explicacaoIndicador(nome);return `<article><span>${esc(nome)}</span><strong>${esc(valor)}</strong>${dica?`<small>${esc(dica)}</small>`:''}${explicacao||calculo?`<details class="indicador-ajuda"><summary>Entenda o número</summary>${explicacao?`<p class="indicador-descricao">${esc(explicacao)}</p>`:''}${calculo?`<p>${esc(calculo)}</p>`:''}</details>`:''}</article>`;}).join('')}</div>`;}
 export function titulo(nome,descricao,acoes=''){return `<div class="titulo"><div><h2>${esc(nome)}</h2><p class="suave">${esc(descricao)}</p></div><div class="acoes-linha">${acoes}</div></div>`;}
 export const opcoesClientes=()=>dados.clientes.filter(c=>c.ativo).map(c=>[c.id,c.nome]);
 export function campo(nome,label,tipo='text',valor='',extra={}){return {nome,label,tipo,valor,...extra};}
@@ -59,17 +59,19 @@ export async function renderizar(){
   $('periodo').hidden=!['inicio','financeiro'].includes(aba);
   $('ajudaPeriodo').hidden=$('periodo').hidden;
   await (fichaAberta?ficha(Number(aba.slice(8))):(telas[aba]||inicio)());
-  if((location.hash.slice(1)||'inicio')===aba&&!$('conteudo').querySelector('[data-guia]'))$('conteudo').insertAdjacentHTML('afterbegin',guia(fichaAberta?'ficha':aba,usuario.admin));
+  if((location.hash.slice(1)||'inicio')===aba&&!$('conteudo').querySelector('[data-guia]')){
+    const g=guia(fichaAberta?'ficha':aba,usuario.admin),topo=$('conteudo').querySelector(':scope>.titulo');
+    topo?topo.insertAdjacentHTML('afterend',g):$('conteudo').insertAdjacentHTML('afterbegin',g);
+  }
 }
 export async function carregar(){dados=await api(`/api/gestao?inicio=${$('inicio').value}&fim=${$('fim').value}`);await renderizar();}
 $('cancelar').onclick=()=>$('formDialog').close();
 $('atualizar').onclick=async()=>{try{await carregar();}catch(e){aviso(e.message);}};
-$('senha').onclick=()=>dialogo('Alterar minha senha',[campo('atual','Senha atual','password'),campo('nova','Nova senha','password')],async b=>{await api('/api/gestao/senha','PUT',b);location.replace('/');},'Após salvar, entre novamente com a nova senha.');
-$('sair').onclick=async()=>{try{await api('/api/sair','POST');location.replace('/');}catch(e){aviso(e.message);}};
+document.addEventListener('casca-senha',()=>dialogo('Alterar minha senha',[campo('atual','Senha atual','password'),campo('nova','Nova senha','password')],async b=>{await api('/api/gestao/senha','PUT',b);location.replace('/');},'Após salvar, entre novamente com a nova senha.'));
 window.addEventListener('hashchange',()=>renderizar().then(()=>window.scrollTo({top:0,left:0,behavior:'auto'})).catch(e=>aviso(e.message)));
 (async()=>{try{
   usuario=await api('/api/eu');if(!usuario.admin&&usuario.papel!=='atendente'){location.replace('/');return;}
-  document.body.classList.toggle('admin',usuario.admin);$('identidade').textContent=`${usuario.nome} · ${usuario.admin?'Toda a operação':'Sua carteira'}`;
+  document.body.classList.toggle('admin',usuario.admin);document.body.classList.add('pronto');
   dados=await api('/api/gestao');$('inicio').value=dados.inicio;$('fim').value=dados.fim;await renderizar();
   if(new URLSearchParams(location.search).get('orientacao')==='cadastro')window.scrollTo({top:0,left:0,behavior:'auto'});
 }catch(e){aviso(e.message);}})();

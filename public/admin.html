@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lojas — Painel de Produtos</title>
 <link rel="stylesheet" href="/ajuda.css">
+<link rel="stylesheet" href="/casca.css">
+<script src="/casca.js"></script>
 <script type="module" src="/ajuda-paginas.js"></script>
 <style>
   :root {
@@ -14,9 +16,6 @@
   * { box-sizing:border-box; }
   body { margin:0; background:var(--fundo); color:var(--tinta);
          font:15px/1.55 -apple-system,"Segoe UI",Roboto,sans-serif; }
-  header { background:var(--papel); border-bottom:1px solid var(--linha); padding:14px 26px;
-           display:flex; align-items:center; gap:14px; }
-  header h1 { margin:0; font-size:17px; margin-right:auto; }
   main { max-width:1080px; margin:0 auto; padding:24px 26px 80px; }
 
   button { font:inherit; font-size:14px; cursor:pointer; padding:8px 15px; border-radius:7px;
@@ -60,7 +59,7 @@
   a.loja-link { color:var(--acento); font-size:13px; }
 
   .linha-acoes.colada { margin-top:0; }
-  .rolagem-lateral { overflow-x:auto; margin-top:14px; }
+  .rolagem-lateral { overflow-x:auto; margin-top:14px; position:relative; }
   .titulo-tabela { font-size:16px; margin:26px 0 12px; }
   .quando { color:var(--suave); font-size:13px; white-space:nowrap; }
   .vazio { color:var(--suave); font-style:italic; }
@@ -73,15 +72,12 @@
                    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 </style>
 </head>
-<body data-ajuda-tela="acessos">
+<body data-ajuda-tela="acessos" data-ajuda-admin="true">
 
-<header>
-  <h1>Lojas</h1>
-  <a href="/gestao.html"><button type="button">Central da operação</button></a>
-  <a href="/"><button type="button">Voltar ao painel</button></a>
-</header>
+<header id="casca" class="casca" data-pagina="admin"></header>
 
 <main>
+  <div class="titulo-pagina"><h1>Configurações</h1><span>Inteligência artificial, lojas conectadas e contatos da landing</span></div>
   <div class="aviso escondido" id="aviso"></div>
 
   <div class="cartao">
@@ -200,6 +196,7 @@
   </div>
 
   <h2 class="titulo-tabela">Lojas cadastradas</h2>
+  <div class="rolagem-lateral">
   <table>
     <thead>
       <tr>
@@ -208,6 +205,7 @@
     </thead>
     <tbody id="corpo"></tbody>
   </table>
+  </div>
 </main>
 
 <script>

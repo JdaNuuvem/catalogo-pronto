@@ -6,20 +6,21 @@
 <title>Central da operação</title>
 <link rel="stylesheet" href="/operacao.css">
 <link rel="stylesheet" href="/ajuda.css">
+<link rel="stylesheet" href="/casca.css">
+<script src="/casca.js"></script>
 <script type="module" src="/ajuda-paginas.js"></script>
 <script src="/operacao.js" defer></script>
 </head>
 <body data-ajuda-tela="cadastro">
-<header><div><span class="sobretitulo">CLIENTES · EQUIPE · VENCIMENTOS</span><h1>Central da operação</h1></div>
-<nav><a href="/gestao.html">Gestão da operação</a><a href="/admin.html" class="somente-admin">Lojas e configurações</a><a href="/?produtos=1" class="somente-admin">Produtos</a><button id="sair">Sair</button></nav></header>
+<header id="casca" class="casca" data-pagina="operacao"></header>
 <main>
-<p id="identidade">Carregando sua conta…</p>
+<div class="titulo-pagina"><h1 id="tituloPagina"></h1><span id="identidade">Carregando sua conta…</span></div>
 <p id="aviso" role="status" hidden></p>
 <section class="resumo" aria-label="Resumo da carteira">
-<article><span>Clientes na carteira</span><strong id="total">—</strong><p class="indicador-descricao">Quantidade de lojas ativas vinculadas à sua carteira.</p></article>
-<article><span>Vencem hoje</span><strong id="hoje">—</strong><p class="indicador-descricao">Clientes cuja data de acompanhamento cadastrada é hoje. Confira as cobranças na gestão.</p></article>
-<article><span>Vencimento passado</span><strong id="passados">—</strong><p class="indicador-descricao">Datas cadastradas que já passaram. Confira o pagamento antes de cobrar o cliente.</p></article>
-<article><span id="rotuloParte">Parte da equipe na implantação</span><strong id="parte">—</strong><small>Estimativa antes dos custos</small><p class="indicador-descricao">Metade do orçamento dos serviços iniciais. Consulte Repasses para ver quanto foi liberado após custos e pagamentos.</p></article>
+<article><span>Clientes na carteira</span><strong id="total">—</strong><details class="indicador-ajuda"><summary>Entenda o número</summary><p class="indicador-descricao">Quantidade de lojas ativas vinculadas à sua carteira.</p></details></article>
+<article><span>Vencem hoje</span><strong id="hoje">—</strong><details class="indicador-ajuda"><summary>Entenda o número</summary><p class="indicador-descricao">Clientes cuja data de acompanhamento cadastrada é hoje. Confira as cobranças na gestão.</p></details></article>
+<article><span>Vencimento passado</span><strong id="passados">—</strong><details class="indicador-ajuda"><summary>Entenda o número</summary><p class="indicador-descricao">Datas cadastradas que já passaram. Confira o pagamento antes de cobrar o cliente.</p></details></article>
+<article><span id="rotuloParte">Parte da equipe na implantação</span><strong id="parte">—</strong><small>Estimativa antes dos custos</small><details class="indicador-ajuda"><summary>Entenda o número</summary><p class="indicador-descricao">Metade do orçamento dos serviços iniciais. Consulte Repasses para ver quanto foi liberado após custos e pagamentos.</p></details></article>
 </section>
 <section class="cartao somente-admin">
 <div class="titulo"><h2>Equipe de atendimento</h2><button id="novoAtendente">Cadastrar atendente</button></div>

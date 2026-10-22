@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel de Produtos</title>
 <link rel="stylesheet" href="/ajuda.css">
+<link rel="stylesheet" href="/casca.css">
+<script src="/casca.js"></script>
 <script type="module" src="/ajuda-paginas.js"></script>
 <style>
   :root {
@@ -39,10 +41,6 @@
   button.largo { width:100%; }
 
   /* ----------------------------------------------------------------- app */
-  header { background:var(--papel); border-bottom:1px solid var(--linha); padding:14px 26px;
-           position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  header h1 { margin:0; font-size:17px; }
-  header .loja { color:var(--suave); font-size:13px; margin-right:auto; }
   main { max-width:1180px; margin:0 auto; padding:24px 26px 90px; }
 
   .passos { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
@@ -144,14 +142,10 @@
 
 <!-- ================================================================ app -->
 <div id="app" class="escondido">
-  <header>
-    <h1>Painel de Produtos</h1>
-    <span class="loja" id="nomeLoja"></span>
-    <a id="linkAdmin" class="escondido" href="/admin.html"><button type="button">Lojas</button></a>
-    <button type="button" id="btnSair">Sair</button>
-  </header>
+  <header id="casca" class="casca" data-pagina="produtos"></header>
 
   <main>
+    <div class="titulo-pagina"><h1>Produtos</h1><span id="nomeLoja"></span></div>
     <div class="passos">
       <div class="passo ativo" id="passo1"><b>1</b> Enviar fotos</div>
       <div class="passo" id="passo2"><b>2</b> Revisar</div>
@@ -249,11 +243,6 @@ $('formLogin').addEventListener('submit', async (e) => {
   iniciarApp();
 });
 
-$('btnSair').onclick = async () => {
-  await fetch('/api/sair', { method: 'POST' });
-  location.reload();
-};
-
 async function iniciarApp() {
   const r = await fetch('/api/eu');
   if (!r.ok) { $('telaLogin').classList.remove('escondido'); $('app').classList.add('escondido'); return; }
@@ -272,7 +261,6 @@ async function iniciarApp() {
   $('app').classList.remove('escondido');
   $('nomeLoja').textContent = eu.nome;
   if(lojaSelecionada && !eu.admin) $('btnPublicar').classList.add('escondido');
-  if (eu.admin) $('linkAdmin').classList.remove('escondido');
 
   const aviso = $('avisoConfig');
   if (!eu.temCredenciais) {

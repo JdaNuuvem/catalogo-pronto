@@ -110,7 +110,7 @@ const {chromium}=require('../../automacao/node_modules/playwright');
     await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     await page.locator('#passoSelecionado').selectOption('8');assert.equal(await page.locator('#etapaOnboarding').innerText(),'Entregar a loja e orientar o cliente');
     await page.goto(base+`/?produtos=1&loja=${cid}`);await page.locator('#app').waitFor();assert.equal(await page.locator('#btnPublicar').isVisible(),false);
-    assert.match(await page.locator('.ajuda-passos').innerText(),/avise o administrador/);
+    await page.locator('[data-guia] summary').click();assert.match(await page.locator('.ajuda-passos').innerText(),/avise o administrador/);
     await page.goto(base+'/gestao.html#clientes');await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     assert.deepEqual(erros,[]);console.log('Gestão validada: cobrança, pagamento parcial, custo, repasse, financeiro, implantação, suporte, fotos, lote por cliente, backup restaurável e acesso da equipe no celular.');
   }finally{if(browser)await browser.close();if(processo&&processo.exitCode===null){const fim=new Promise(r=>processo.once('exit',r));processo.kill();await fim;}fs.rmSync(raiz,{recursive:true,force:true});}
