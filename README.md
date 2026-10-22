@@ -41,7 +41,7 @@ seguintes a sessão já está salva e ele nem vê essa etapa.
 
 ## Como você administra
 
-Entre com a conta de administrador e clique em **Lojas** no topo. Ali você cadastra
+Entre com a conta de administrador e clique em **Lojas e IA** no menu lateral. Ali você cadastra
 cada cliente com dois pares de credenciais:
 
 | Credencial | Para quê |

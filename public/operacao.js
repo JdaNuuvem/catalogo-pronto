@@ -105,7 +105,6 @@ $('novoCliente').onclick = () => abrirCliente(null);
 $('clientes').addEventListener('click', e => { const botao = e.target.closest('[data-editar]'); if (botao) abrirCliente(carteira.find(c => c.id === Number(botao.dataset.editar))); });
 for (const id of ['busca','filtroAtendente','filtroVencimento']) $(id).addEventListener('input', renderizar);
 $('atualizar').onclick = async () => { $('atualizar').disabled = true; try { await carregar(); } catch (e) { avisar(e.message); } finally { $('atualizar').disabled = false; } };
-$('sair').onclick = async () => { try { await api('/api/sair','POST'); location.replace('/'); } catch (e) { avisar(e.message); } };
 (async () => {
   try {
     usuario = await api('/api/eu');
@@ -113,7 +112,8 @@ $('sair').onclick = async () => { try { await api('/api/sair','POST'); location.
     document.dispatchEvent(new CustomEvent('catalogo-perfil'));
     if (!usuario.admin && usuario.papel !== 'atendente') { location.replace('/'); return; }
     document.body.classList.toggle('admin',usuario.admin);
-    $('identidade').textContent = `${usuario.nome} · ${usuario.admin ? 'Visão de toda a operação' : 'Sua carteira de clientes'}`;
+    $('tituloPagina').textContent = usuario.admin ? 'Cadastro e equipe' : 'Minha carteira';
+    $('identidade').textContent = usuario.admin ? 'Visão de toda a operação: vencimentos e responsáveis' : 'Sua carteira de clientes';
     if (!usuario.admin) { $('tituloCarteira').textContent = 'Meus clientes'; $('rotuloParte').textContent = 'Sua parte na implantação'; }
     await carregar();
     const parametros=new URLSearchParams(location.search);

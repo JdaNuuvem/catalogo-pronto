@@ -61,9 +61,12 @@ const {chromium}=require('../../automacao/node_modules/playwright');
     await api('/api/admin/lojas/'+cid,{cdpLink:'javascript:alert(1)'},'PUT');
     await page.reload();await page.locator('[data-passo="7"]').click();assert.equal(await page.locator('.onboarding-link').count(),1);
     await api('/api/admin/lojas/'+cid,{cdpLink:null},'PUT');await page.reload();await page.locator('[data-passo="0"]').waitFor();
-    await page.locator('[data-passo="0"]').click();
-    await page.locator('#conferirEtapa').click();await page.getByRole('button',{name:'Reabrir esta etapa',exact:true}).waitFor();
-    await page.reload();await page.getByRole('button',{name:'Reabrir esta etapa',exact:true}).waitFor();
+    await page.locator('[data-passo="0"]').click();assert.equal(await page.locator('#conferirEtapa').isDisabled(),true);
+    for(const i of [0,1]){await page.locator(`.onboarding-checklist [data-item="${i}"]`).click();await page.locator(`.onboarding-checklist [data-item="${i}"]:checked`).waitFor();}
+    await page.locator('#conferirEtapa').click();await page.locator('#etapaOnboarding').filter({hasText:'Confirmar o serviço e a cobrança'}).waitFor();
+    await page.reload();await page.locator('#etapaOnboarding').filter({hasText:'Confirmar o serviço e a cobrança'}).waitFor();
+    await page.locator('[data-passo="0"]').click();await page.getByRole('button',{name:'Reabrir esta etapa',exact:true}).waitFor();
+    assert.equal(await page.locator('.onboarding-checklist input:checked').count(),2);
     await page.locator('[data-passo="2"]').click();assert.equal(await page.locator('#etapaOnboarding').innerText(),'Criar o e-mail da loja');
     assert.equal(await page.locator('.onboarding-link').innerText(),'Abrir Proton');
     await page.locator('#passoSeguinte').click();assert.equal(await page.locator('#etapaOnboarding').innerText(),'Criar a conta no Cardapio.ai');
@@ -106,11 +109,13 @@ const {chromium}=require('../../automacao/node_modules/playwright');
     await page.goto(base+'/gestao.html#repasses');await page.getByRole('heading',{name:'Repasses',exact:true}).waitFor();assert.equal(await page.locator('[data-pagar]').count(),0);
     await page.goto(base+`/gestao.html?loja=${cid}#lojas-novas`);await page.locator('#lojaOnboarding').waitFor();
     await page.locator('[data-passo="7"]').click();assert.equal(await page.locator('#conferirEtapa').count(),0);
-    await page.locator('[data-passo="5"]').click();await page.locator('#conferirEtapa').click();await page.getByRole('button',{name:'Reabrir esta etapa',exact:true}).waitFor();
+    await page.locator('[data-passo="5"]').click();for(const i of [0,1]){await page.locator(`.onboarding-checklist [data-item="${i}"]`).click();await page.locator(`.onboarding-checklist [data-item="${i}"]:checked`).waitFor();}
+    await page.locator('#conferirEtapa').click();await page.locator('#etapaOnboarding').filter({hasText:'Analisar e revisar os produtos'}).waitFor();
+    await page.locator('[data-passo="5"]').click();await page.getByRole('button',{name:'Reabrir esta etapa',exact:true}).waitFor();
     await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     await page.locator('#passoSelecionado').selectOption('8');assert.equal(await page.locator('#etapaOnboarding').innerText(),'Entregar a loja e orientar o cliente');
     await page.goto(base+`/?produtos=1&loja=${cid}`);await page.locator('#app').waitFor();assert.equal(await page.locator('#btnPublicar').isVisible(),false);
-    assert.match(await page.locator('.ajuda-passos').innerText(),/avise o administrador/);
+    await page.locator('[data-guia] summary').click();assert.match(await page.locator('.ajuda-passos').innerText(),/avise o administrador/);
     await page.goto(base+'/gestao.html#clientes');await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     assert.deepEqual(erros,[]);console.log('Gestão validada: cobrança, pagamento parcial, custo, repasse, financeiro, implantação, suporte, fotos, lote por cliente, backup restaurável e acesso da equipe no celular.');
   }finally{if(browser)await browser.close();if(processo&&processo.exitCode===null){const fim=new Promise(r=>processo.once('exit',r));processo.kill();await fim;}fs.rmSync(raiz,{recursive:true,force:true});}

@@ -2,7 +2,7 @@ import {$,dados,usuario,esc,brl,titulo,api,aviso} from './gestao.js';
 const etapas=[
   {id:'cadastro',titulo:'Cadastrar a loja e o responsável',quem:'Atendente e administrador',equipe:true,
     objetivo:'Deixe registrado quem é o cliente, qual loja será montada e quem vai fazer o atendimento.',
-    fazer:['Peça nome da loja, nome do responsável, WhatsApp, quantidade de produtos e referências da identidade visual.','O administrador usa Clientes e equipe para cadastrar a loja e vincular o atendente.','Depois do cadastro, selecione essa loja no campo acima para salvar o progresso deste roteiro.'],
+    fazer:['Peça nome da loja, nome do responsável, WhatsApp, quantidade de produtos e referências da identidade visual.','O administrador usa Cadastro e equipe para cadastrar a loja e vincular o atendente.','Depois do cadastro, selecione essa loja no campo acima para salvar o progresso deste roteiro.'],
     conferir:['Loja cadastrada na carteira.','Contato e atendente responsável conferidos.'],
     acoes:[['Cadastrar uma nova loja','cadastro'],['Conferir cadastro desta loja','cadastro-ficha']]},
   {id:'acordo',titulo:'Confirmar o serviço e a cobrança',quem:'Atendente coleta; administrador registra',equipe:true,
@@ -17,7 +17,7 @@ const etapas=[
     acoes:[['Abrir Proton','proton']]},
   {id:'conta',titulo:'Criar a conta no Cardapio.ai',quem:'Administrador',
     objetivo:'Use o e-mail da loja para criar e verificar sua conta na plataforma.',
-    fazer:['Abra o Cardapio.ai e cadastre a nova loja com o e-mail criado na etapa anterior.','Conclua as verificações solicitadas pela plataforma.','Em Configurações de acessos, informe as credenciais do Cardapio.ai na loja correspondente para conectar a automação.'],
+    fazer:['Abra o Cardapio.ai e cadastre a nova loja com o e-mail criado na etapa anterior.','Conclua as verificações solicitadas pela plataforma.','Em Lojas e IA, informe as credenciais do Cardapio.ai na loja correspondente para conectar a automação.'],
     conferir:['Login na loja do cliente funcionando.','Credenciais vinculadas à loja correta no nosso painel.'],
     acoes:[['Abrir Cardapio.ai','cardapio'],['Configurar os acessos da loja','acessos']]},
   {id:'configuracao',titulo:'Montar a loja e a identidade visual',quem:'Administrador',
@@ -56,7 +56,15 @@ const etapas=[
     conferir:['Custos e recebimentos da implantação conferidos.','Repasse disponível revisado e combinado com o atendente.'],
     acoes:[['Conferir custos e recebimentos','cobrancas'],['Conferir a parte do atendente','repasses']]}
 ];
-let lojaId=0,indice=0,registros=[],salvando=false,carregando=false,requisicao=0;
+// As 11 etapas em quatro fases: a equipe enxerga em que momento da contratacao a loja esta.
+const fases=[
+  {titulo:'Contratação',passos:['cadastro','acordo']},
+  {titulo:'Contas e acessos',passos:['email','conta']},
+  {titulo:'Montagem e produtos',passos:['configuracao','materiais','revisao','publicacao']},
+  {titulo:'Entrega e pós-venda',passos:['entrega','mensalidades','repasse']}
+];
+const faseDe=id=>fases.findIndex(f=>f.passos.includes(id));
+let lojaId=0,indice=0,registros=[],salvando=false,carregando=false,requisicao=0,posicionada=0;
 const destinos={cadastro:'/operacao.html?novoCliente=1',cobrancas:'#cobrancas',tarefas:'#tarefas',implantacoes:'#implantacoes',configuracoes:'#configuracoes',financeiro:'#financeiro',repasses:'#repasses',acessos:'/admin.html',proton:'https://mail.proton.me/',cardapio:'https://cardapio.ai/','painel-cardapio':'https://cardapio.ai/painelweb/listar'};
 function destino(tipo,loja){if(tipo==='cadastro-ficha')return `/gestao.html?loja=${lojaId}&orientacao=cadastro#cliente-${lojaId}`;if(tipo==='ficha')return `#cliente-${lojaId}`;if(tipo==='produtos')return `/?produtos=1&loja=${lojaId}`;if(tipo==='catalogo')return loja.cdp_link;return destinos[tipo];}
 function permitido(tipo,loja){
@@ -69,22 +77,46 @@ function permitido(tipo,loja){
   return true;
 }
 function pronto(passo){return registros.some(r=>r.passo===passo&&r.concluido);}
+function marcado(passo,item){const r=registros.find(r=>r.passo===passo);return !!r&&(!!r.concluido||r.itens.includes(item));}
+/** Primeira etapa ainda nao conferida a partir de `de`, dando a volta no roteiro. */
+function proxima(de=0){for(let k=0;k<etapas.length;k++){const i=(de+k)%etapas.length;if(!pronto(etapas[i].id))return i;}return null;}
+
+/** Progresso do roteiro de uma loja a partir do resumo que vem em /api/gestao. */
+export function progressoLoja(c){
+  const feitos=new Set(c.onboarding_feitos||[]),feitas=etapas.filter(e=>feitos.has(e.id)).length,i=etapas.findIndex(e=>!feitos.has(e.id));
+  return {feitas,total:etapas.length,proxima:i<0?null:etapas[i]};
+}
+/** Barra curta do passo a passo para listas, quadros e fichas. */
+export function roteiroResumo(c){
+  if(!c.ativo)return '';
+  const {feitas,total,proxima:p}=progressoLoja(c),link=`/gestao.html?loja=${c.id}#lojas-novas`;
+  return `<div class="roteiro-mini"><div class="roteiro-barra" role="img" aria-label="${feitas} de ${total} etapas conferidas"><i style="width:${Math.round(feitas/total*100)}%"></i></div>
+    <span>${feitas}/${total}${p?` · <a href="${link}">Próxima: ${esc(p.titulo)}</a>`:' · roteiro concluído'}</span></div>`;
+}
+
 function desenhar(){
   if((location.hash.slice(1)||'inicio')!=='lojas-novas')return;
   const loja=dados.clientes.find(c=>c.id===lojaId&&c.ativo),etapa=etapas[indice],feitas=etapas.filter(e=>pronto(e.id)).length;
   const registro=registros.find(r=>r.passo===etapa.id),concluida=pronto(etapa.id),podeConferir=usuario.admin||etapa.equipe;
-  const acoes=etapa.acoes.filter(([,tipo])=>permitido(tipo,loja));
-  $('conteudo').innerHTML=titulo('Passo a passo lojas novas','Siga o roteiro da contratação até a entrega e o acompanhamento mensal.')+
-    `<section class="onboarding-intro"><p><b>Como usar:</b> escolha a loja, leia uma etapa por vez e abra os links para executar o trabalho. Marque a etapa como conferida depois de concluir as verificações.</p><p class="suave">O checklist salva o progresso da equipe. Cobranças, pagamentos, publicação e a etapa da implantação são registrados nas suas telas.</p>
-    <label for="lojaOnboarding">Loja que vamos montar<select id="lojaOnboarding" ${carregando||salvando?'disabled':''}><option value="0">Escolha uma loja para salvar o progresso</option>${dados.clientes.filter(c=>c.ativo).map(c=>`<option value="${c.id}" ${c.id===lojaId?'selected':''}>${esc(c.nome)}</option>`).join('')}</select></label>
-    ${loja?`<div class="onboarding-progresso"><span>${feitas} de ${etapas.length} etapas conferidas · ${esc(loja.atendente||'Sem atendente vinculado')}</span><progress max="${etapas.length}" value="${feitas}" aria-label="Progresso do passo a passo"></progress></div>`:'<p class="suave">Você já pode ler o roteiro. Depois de cadastrar a loja, selecione-a acima para acompanhar as etapas.</p>'}</section>
-    <div class="onboarding-layout"><label class="onboarding-seletor" for="passoSelecionado">Etapa do roteiro<select id="passoSelecionado">${etapas.map((e,i)=>`<option value="${i}" ${i===indice?'selected':''}>${i+1}. ${esc(e.titulo)}${pronto(e.id)?' · conferida':''}</option>`).join('')}</select></label><nav class="onboarding-menu" aria-label="Etapas da loja nova">${etapas.map((e,i)=>`<button data-passo="${i}" type="button" ${i===indice?'aria-current="step"':''}><span>${pronto(e.id)?'✓':i+1}</span>${esc(e.titulo)}</button>`).join('')}</nav>
-    <article class="onboarding-etapa" aria-labelledby="etapaOnboarding"><span class="sobretitulo">ETAPA ${indice+1} DE ${etapas.length} · ${esc(etapa.quem)}</span><h3 id="etapaOnboarding">${esc(etapa.titulo)}</h3><p>${esc(etapa.objetivo)}</p>
+  const acoes=etapa.acoes.filter(([,tipo])=>permitido(tipo,loja)),fase=faseDe(etapa.id);
+  const podeMarcar=!!loja&&podeConferir&&!salvando&&!carregando,completos=etapa.conferir.every((_,i)=>marcado(etapa.id,i));
+  const resumoFases=fases.map((f,i)=>{const n=f.passos.filter(pronto).length;
+    return `<li class="${n===f.passos.length?'feita':''} ${i===fase?'atual':''}"><b>${i+1}. ${esc(f.titulo)}</b><span>${n}/${f.passos.length}</span><div class="roteiro-barra"><i style="width:${Math.round(n/f.passos.length*100)}%"></i></div></li>`;}).join('');
+  const menu=fases.map((f,fi)=>`<div class="onboarding-fase"><span class="onboarding-fase-titulo">${fi+1} · ${esc(f.titulo)}</span>${f.passos.map(id=>{const i=etapas.findIndex(e=>e.id===id),e=etapas[i];
+    return `<button data-passo="${i}" type="button" ${i===indice?'aria-current="step"':''} class="${pronto(e.id)?'feita':''}"><span>${pronto(e.id)?'✓':i+1}</span>${esc(e.titulo)}</button>`;}).join('')}</div>`).join('');
+  $('conteudo').innerHTML=titulo('Lojas novas','Roteiro da contratação até a entrega e o acompanhamento mensal.')+
+    `<section class="onboarding-intro"><div class="onboarding-loja"><label for="lojaOnboarding">Loja que vamos montar<select id="lojaOnboarding" ${carregando||salvando?'disabled':''}><option value="0">Escolha uma loja para salvar o progresso</option>${dados.clientes.filter(c=>c.ativo).map(c=>`<option value="${c.id}" ${c.id===lojaId?'selected':''}>${esc(c.nome)}</option>`).join('')}</select></label>
+    ${loja?`<div class="onboarding-total"><strong>${feitas}<small>/${etapas.length}</small></strong><span>etapas conferidas<br>${esc(loja.atendente||'Sem atendente vinculado')}</span></div>`:''}</div>
+    ${loja?`<ol class="onboarding-fases" aria-label="Progresso por fase">${resumoFases}</ol>`:'<p class="suave">Você já pode ler o roteiro. Depois de cadastrar a loja, escolha-a acima: o progresso é salvo e o roteiro abre sempre na próxima etapa pendente.</p>'}</section>
+    <div class="onboarding-layout"><label class="onboarding-seletor" for="passoSelecionado">Etapa do roteiro<select id="passoSelecionado">${etapas.map((e,i)=>`<option value="${i}" ${i===indice?'selected':''}>${i+1}. ${esc(e.titulo)}${pronto(e.id)?' · conferida':''}</option>`).join('')}</select></label><nav class="onboarding-menu" aria-label="Etapas da loja nova">${menu}</nav>
+    <article class="onboarding-etapa" aria-labelledby="etapaOnboarding"><span class="sobretitulo">FASE ${fase+1} · ${esc(fases[fase].titulo.toUpperCase())} · ETAPA ${indice+1} DE ${etapas.length}</span><h3 id="etapaOnboarding">${esc(etapa.titulo)}</h3><p class="onboarding-quem">${esc(etapa.quem)}</p><p>${esc(etapa.objetivo)}</p>
     ${etapa.id==='acordo'&&loja?`<p class="atencao">Orçamento cadastrado da implantação: <b>${brl(loja.implantacao_centavos+Math.max(0,loja.produtos_contratados-25)*loja.adicional_centavos)}</b> para ${loja.produtos_contratados} produtos, antes dos custos.</p>`:''}
-    <h4>O que fazer</h4><ol>${etapa.fazer.map(t=>`<li>${esc(t)}</li>`).join('')}</ol><h4>Confira antes de marcar</h4><ul>${etapa.conferir.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
-    ${acoes.length?`<div class="acoes-linha">${acoes.map(([label,tipo])=>`<a class="onboarding-link" href="${esc(destino(tipo,loja))}" ${['proton','cardapio','painel-cardapio','catalogo'].includes(tipo)?'target="_blank" rel="noopener"':''}>${esc(label)}</a>`).join('')}</div>`:!loja?'<p class="suave">Selecione uma loja acima para abrir as ações desta etapa.</p>':''}
+    <h4>O que fazer</h4><ol>${etapa.fazer.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>
+    ${acoes.length?`<div class="acoes-linha">${acoes.map(([label,tipo])=>`<a class="onboarding-link" href="${esc(destino(tipo,loja))}" ${['proton','cardapio','painel-cardapio','catalogo'].includes(tipo)?'target="_blank" rel="noopener"':''}>${esc(label)}</a>`).join('')}</div>`:!loja?'<p class="suave">Escolha uma loja acima para abrir as ações desta etapa.</p>':''}
+    <h4>Confira antes de marcar</h4><ul class="onboarding-checklist">${etapa.conferir.map((t,i)=>`<li><label class="${marcado(etapa.id,i)?'marcado':''}"><input type="checkbox" data-item="${i}" ${marcado(etapa.id,i)?'checked':''} ${podeMarcar?'':'disabled'}><span>${esc(t)}</span></label></li>`).join('')}</ul>
     ${!podeConferir?'<p class="atencao">Esta etapa é conferida pelo administrador. Você pode consultar as instruções e combinar o andamento com ele.</p>':''}
-    <div class="onboarding-confirmacao">${loja&&podeConferir?`<button id="conferirEtapa" class="${concluida?'':'principal'}" ${salvando||carregando?'disabled':''}>${concluida?'Reabrir esta etapa':'Marcar etapa como conferida'}</button>`:'<p class="suave">'+(loja?'A confirmação desta etapa fica com o administrador.':'Selecione uma loja para registrar a conferência.')+'</p>'}
+    <div class="onboarding-confirmacao">${loja&&podeConferir?`<button id="conferirEtapa" class="${concluida?'':'principal'}" ${salvando||carregando||(!concluida&&!completos)?'disabled':''}>${concluida?'Reabrir esta etapa':'Marcar etapa como conferida'}</button>
+      ${!concluida&&!completos?'<span class="suave">Marque os itens acima para conferir a etapa.</span>':''}`:'<p class="suave">'+(loja?'A confirmação desta etapa fica com o administrador.':'Escolha uma loja para registrar a conferência.')+'</p>'}
     ${concluida?`<p class="suave">Conferida por ${esc(registro.responsavel)} em ${esc(new Date(registro.atualizado_em.replace(' ','T')+'Z').toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}))}.</p>`:''}</div>
     <div class="onboarding-navegacao"><button id="passoAnterior" ${indice===0?'disabled':''}>← Etapa anterior</button><button id="passoSeguinte" ${indice===etapas.length-1?'disabled':''}>Próxima etapa →</button></div>
     ${feitas===etapas.length&&loja?'<p class="onboarding-concluido">Roteiro conferido pela equipe. Acompanhe agora as mensalidades e as solicitações dessa loja.</p>':''}</article></div>`;
@@ -92,17 +124,39 @@ function desenhar(){
     const novo=Number(e.target.value);lojaId=novo;indice=0;registros=[];
     const url=new URL(location.href);if(novo)url.searchParams.set('loja',String(novo));else url.searchParams.delete('loja');history.replaceState(null,'',url);
     const consulta=buscar();desenhar();
-    try{await consulta;desenhar();}catch(e){aviso(e.message);desenhar();}
+    try{await consulta;posicionar();desenhar();}catch(e){aviso(e.message);desenhar();}
   };
   document.querySelectorAll('[data-passo]').forEach(b=>b.onclick=()=>{indice=Number(b.dataset.passo);desenhar();});
   $('passoSelecionado').onchange=e=>{indice=Number(e.target.value);desenhar();};
   $('passoAnterior').onclick=()=>{indice=Math.max(0,indice-1);desenhar();};$('passoSeguinte').onclick=()=>{indice=Math.min(etapas.length-1,indice+1);desenhar();};
+  document.querySelectorAll('.onboarding-checklist [data-item]').forEach(c=>c.onchange=()=>{
+    const item=Number(c.dataset.item);let r=registros.find(r=>r.passo===etapa.id);
+    if(!r){r={passo:etapa.id,concluido:0,itens:[]};registros.push(r);}
+    // A marca aparece na hora; se o servidor recusar, salvar() recarrega o que esta gravado.
+    const base=r.concluido?etapa.conferir.map((_,i)=>i):r.itens;
+    r.itens=c.checked?[...new Set([...base,item])]:base.filter(i=>i!==item);if(!c.checked)r.concluido=0;
+    salvar({passo:etapa.id,item,marcado:c.checked});
+  });
   if($('conferirEtapa'))$('conferirEtapa').onclick=async()=>{
-    if(salvando||carregando)return;salvando=true;desenhar();
-    try{const r=await api(`/api/gestao/clientes/${lojaId}/onboarding`,'PUT',{passo:etapa.id,concluido:!concluida});registros=r.etapas;aviso(concluida?'Etapa reaberta.':'Conferência salva para esta loja.',true);}
-    catch(e){aviso(e.message);}finally{salvando=false;desenhar();}
+    if(!await salvar({passo:etapa.id,concluido:!concluida}))return;
+    if(concluida){aviso('Etapa reaberta.',true);return;}
+    // Conferida a etapa, o roteiro segue para a proxima que ainda falta.
+    const seguinte=proxima(indice+1);
+    if(seguinte===null)aviso('Roteiro completo para esta loja.',true);
+    else{indice=seguinte;aviso(`Conferência salva. Próxima etapa: ${etapas[seguinte].titulo}.`,true);desenhar();}
   };
 }
+async function salvar(corpo){
+  if(salvando||carregando)return false;salvando=true;desenhar();
+  try{
+    const r=await api(`/api/gestao/clientes/${lojaId}/onboarding`,'PUT',corpo);registros=r.etapas;
+    const loja=dados.clientes.find(c=>c.id===lojaId);if(loja)loja.onboarding_feitos=registros.filter(e=>e.concluido).map(e=>e.passo);
+    return true;
+  }catch(e){aviso(e.message);await buscar().catch(()=>{});return false;}
+  finally{salvando=false;desenhar();}
+}
+/** Ao abrir uma loja, o roteiro comeca na primeira etapa que ainda nao foi conferida. */
+function posicionar(){if(lojaId&&posicionada!==lojaId){indice=proxima()??0;posicionada=lojaId;}}
 async function buscar(){const consulta=++requisicao;if(!lojaId){carregando=false;return;}const id=lojaId;carregando=true;
   try{const r=await api(`/api/gestao/clientes/${id}/onboarding`);if(requisicao===consulta&&lojaId===id)registros=r.etapas;}
   finally{if(requisicao===consulta)carregando=false;}
@@ -111,5 +165,5 @@ export async function onboarding(){
   const id=Number(new URLSearchParams(location.search).get('loja'));
   if(id&&dados.clientes.some(c=>c.id===id&&c.ativo))lojaId=id;
   if(lojaId&&!dados.clientes.some(c=>c.id===lojaId&&c.ativo)){lojaId=0;registros=[];}
-  await buscar();desenhar();
+  await buscar();posicionar();desenhar();
 }

@@ -1,15 +1,11 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Catálogo Pronto · Gestão</title><link rel="stylesheet" href="/operacao.css"><link rel="stylesheet" href="/gestao.css"><link rel="stylesheet" href="/ajuda.css">
-<link rel="stylesheet" href="/onboarding.css">
+<link rel="stylesheet" href="/onboarding.css"><link rel="stylesheet" href="/casca.css"><link rel="stylesheet" href="/tema.css">
+<script src="/casca.js"></script>
 <script type="module" src="/gestao.js"></script></head><body>
-<header><div><span class="sobretitulo">CATÁLOGO PRONTO</span><h1>Central de gestão</h1><small id="identidade">Carregando…</small></div>
-<nav><a href="/operacao.html">Clientes e equipe</a><a href="/admin.html" class="somente-admin">Configurações</a><button id="senha">Minha senha</button><button id="sair">Sair</button></nav></header>
-<div class="estrutura"><aside aria-label="Navegação principal">
-<a href="#inicio">Visão geral</a><a href="#lojas-novas">Passo a passo lojas novas</a><a href="#clientes">Clientes</a><a href="#implantacoes">Implantações</a>
-<a href="#cobrancas">Cobranças</a><a href="#financeiro" class="somente-admin">Financeiro</a><a href="#repasses">Repasses</a>
-<a href="#tarefas">Suporte e tarefas</a><a href="#configuracoes" class="somente-admin">Equipe e backups</a>
-</aside><main><p id="aviso" role="status" hidden></p><div class="filtros" id="periodo">
+<header id="casca" class="casca" data-pagina="gestao"></header>
+<div class="estrutura"><main><p id="aviso" role="status" hidden></p><div class="filtros" id="periodo">
 <label>De<input type="date" id="inicio"></label><label>Até<input type="date" id="fim"></label><button id="atualizar">Atualizar período</button>
 </div><p class="ajuda-periodo" id="ajudaPeriodo">De e Até filtram os valores do período. Cards marcados como saldo acumulado e a carteira por cliente consideram todo o histórico.</p><section id="conteudo" aria-live="polite"></section></main></div>
 <dialog id="formDialog"><form id="formDinamico"><h2 id="formTitulo"></h2><p id="formDica" class="suave"></p><div id="formCampos" class="grade"></div>

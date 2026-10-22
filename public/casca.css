@@ -1,0 +1,53 @@
+/* Menu lateral de vidro. As cores vem de tema.css; os valores depois da virgula sao reserva. */
+.casca{position:fixed;z-index:30;left:14px;top:14px;bottom:14px;width:236px;display:flex;flex-direction:column;
+  background:var(--vidro-forte,rgba(255,255,255,.72));border:1px solid var(--vidro-borda,rgba(255,255,255,.8));border-radius:20px;
+  box-shadow:var(--sombra,0 10px 40px rgba(70,40,30,.10));-webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
+  font:14px/1.4 -apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tinta,#23201c)}
+body.com-lateral{padding-left:264px}
+.casca-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 18px 14px}
+.casca-marca{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:inherit;text-decoration:none;white-space:nowrap}
+.casca-selo{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;color:#fff;font-size:12px;letter-spacing:.6px;
+  background:linear-gradient(135deg,#d9714f,#a8442a);box-shadow:0 6px 16px rgba(168,68,42,.35),inset 0 1px 0 rgba(255,255,255,.35)}
+.casca-painel{flex:1;min-height:0;display:flex;flex-direction:column}
+.casca-menu{flex:1;overflow-y:auto;padding:4px 10px 10px;scrollbar-width:thin}
+.casca-grupo{margin-bottom:14px}
+.casca-grupo-titulo{display:block;padding:6px 10px;font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--suave,#6d675e);opacity:.8}
+.casca-menu a{display:flex;align-items:center;gap:11px;padding:9px 10px;margin-bottom:2px;border-radius:11px;color:var(--tinta-suave,#4a443d);text-decoration:none;font-weight:500;border:1px solid transparent;transition:background .15s,color .15s}
+.casca-menu a:hover{background:rgba(255,255,255,.65);color:var(--tinta,#23201c)}
+.casca-menu a[aria-current=page]{background:rgba(255,255,255,.92);color:var(--acento,#a8442a);font-weight:650;border-color:rgba(168,68,42,.14);box-shadow:0 4px 14px rgba(168,68,42,.10)}
+.casca-icone{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.casca-menu a[aria-current=page] .casca-icone{stroke-width:2.1}
+.casca-conta{margin:0 10px 10px;padding:12px;border-radius:14px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.75)}
+.casca-quem{display:flex;flex-direction:column;line-height:1.3;margin-bottom:10px;min-width:0}
+.casca-quem b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.casca-quem small{font-size:11px;color:var(--suave,#6d675e)}
+.casca-botoes{display:flex;gap:6px}
+.casca button{font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 10px;border-radius:9px;
+  border:1px solid rgba(35,32,28,.10);background:rgba(255,255,255,.8);color:var(--tinta,#23201c);flex:1;filter:none;box-shadow:none}
+.casca button:hover{background:#fff;border-color:rgba(35,32,28,.22)}
+.casca button .casca-icone{width:15px;height:15px}
+.casca .casca-alternar{display:none;flex:none;width:40px;height:40px;padding:0}
+.casca .casca-alternar .casca-icone{width:20px;height:20px}
+.casca a:focus-visible,.casca button:focus-visible{outline:2px solid var(--acento,#a8442a);outline-offset:2px}
+
+/* Cliente da loja: sem menu, so uma barra fina no topo. */
+.casca.casca-simples{position:sticky;top:0;left:auto;bottom:auto;width:auto;flex-direction:row;align-items:center;border-radius:0;border-width:0 0 1px;padding:0 10px}
+.casca-simples .casca-topo{padding:12px 10px}
+.casca-simples .casca-painel{flex:none;margin-left:auto;flex-direction:row}
+.casca-simples .casca-conta{display:flex;align-items:center;gap:12px;margin:0;padding:0;background:none;border:0}
+.casca-simples .casca-quem{margin:0;align-items:flex-end}
+
+.titulo-pagina{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 20px}
+.titulo-pagina h1{margin:0;font-size:26px;line-height:1.25;letter-spacing:-.3px}
+.titulo-pagina span{color:var(--suave,#6d675e);font-size:13px}
+
+@media(max-width:960px){
+  body.com-lateral{padding-left:0}
+  .casca{position:sticky;left:auto;top:0;bottom:auto;width:auto;border-radius:0;border-width:0 0 1px}
+  .casca-topo{padding:10px 16px}
+  .casca .casca-alternar{display:inline-flex}
+  .casca:not(.casca-simples) .casca-painel{display:none;position:absolute;left:10px;right:10px;top:calc(100% + 8px);max-height:calc(100vh - 90px);
+    background:rgba(255,255,255,.94);border:1px solid rgba(255,255,255,.9);border-radius:18px;box-shadow:0 20px 50px rgba(70,40,30,.18);padding-top:10px}
+  .casca.aberto .casca-painel{display:flex}
+  .casca-simples .casca-quem{display:none}
+}

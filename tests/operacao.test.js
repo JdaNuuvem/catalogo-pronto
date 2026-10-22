@@ -183,6 +183,25 @@ test('onboarding salva por loja, respeita responsabilidades e nao altera recebim
   assert.equal((await chamar('/api/lojas/'+clienteA+'/lote',{cookie:cookieAdmin})).dados.lote,null);
 });
 
+test('checklist do onboarding salva cada item, respeita responsabilidades e reabre a etapa ao desmarcar',async()=>{
+  const url='/api/gestao/clientes/'+clienteA+'/onboarding';
+  const item=(cookie,passo,indice,marcado)=>chamar(url,{cookie,method:'PUT',body:{passo,item:indice,marcado}});
+  const etapa=(r,passo)=>r.dados.etapas.find(e=>e.passo===passo);
+  const primeiro=await item(cookieA,'entrega',0,true);assert.equal(primeiro.status,200);
+  assert.deepEqual(etapa(primeiro,'entrega').itens,[0]);assert.equal(etapa(primeiro,'entrega').concluido,0);
+  assert.equal((await item(cookieA,'conta',0,true)).status,403);
+  assert.equal((await item(cookieB,'entrega',1,true)).status,400);
+  assert.equal((await item(cookieAdmin,'entrega',2,true)).status,400);
+  assert.equal((await item(cookieAdmin,'entrega','1',true)).status,400);
+  assert.equal((await item(cookieAdmin,'entrega',1,'sim')).status,400);
+  const conferida=await chamar(url,{cookie:cookieA,method:'PUT',body:{passo:'entrega',concluido:true}});
+  assert.deepEqual(etapa(conferida,'entrega').itens,[0,1]);assert.equal(etapa(conferida,'entrega').concluido,1);
+  const desmarcada=await item(cookieA,'entrega',1,false);
+  assert.deepEqual(etapa(desmarcada,'entrega').itens,[0]);assert.equal(etapa(desmarcada,'entrega').concluido,0);
+  const carteira=(await chamar('/api/gestao',{cookie:cookieA})).dados.clientes.find(c=>c.id===clienteA);
+  assert.deepEqual(carteira.onboarding_feitos,['publicacao']);
+});
+
 test('desativacao e troca de senha revogam sessoes existentes',async()=>{
   const r=await chamar('/api/gestao/atendentes/'+atendenteA,{cookie:cookieAdmin,method:'PUT',body:{ativo:false}});assert.equal(r.status,200);
   assert.equal((await chamar('/api/gestao',{cookie:cookieA})).status,401);
